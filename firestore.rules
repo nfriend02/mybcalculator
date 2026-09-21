@@ -1,46 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    function isAdmin() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role
-            == 'superadmin';
-    }
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
-    match /branchApps/{appId} {
-      allow read: if resource.data.status == 'approved' || isOwner(resource.data.uploaderId) || isAdmin();
-      allow create: if isSignedIn()
-        && request.resource.data.uploaderId == request.auth.uid
-        && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasAll(['name','description','iconUrl','githubBranchUrl','creator','uploaderId','status','createdAt'])
-        && request.resource.data.description.size() <= 200;
-      allow update: if isAdmin()
-        || (isOwner(resource.data.uploaderId)
-            && request.resource.data.status == resource.data.status
-            && request.resource.data.uploaderId == resource.data.uploaderId);
-      allow delete: if isAdmin() || isOwner(resource.data.uploaderId);
-    }
-
-    match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin();
-    }
-
-    match /admins/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if false;
-    }
-
-    // mybcalculator (센툴) — portfolio demo collections (status required on write)
+    // Portfolio demo app (mybcalculator) — public read/write with status field.
     function hasStatus() {
       return request.resource.data.keys().hasAll(['status'])
         && request.resource.data.status is string;

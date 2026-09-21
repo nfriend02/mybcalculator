@@ -57,6 +57,7 @@ class ScheduleController extends ChangeNotifier {
       note: note,
     );
     _items.insert(0, item);
+    _lastError = null;
     notifyListeners();
     final fs = _firestore;
     if (fs == null) return;
@@ -68,6 +69,9 @@ class ScheduleController extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('Schedule add: $e');
+      _lastError =
+          '로컬에는 저장됐지만 Firebase 동기화에 실패했습니다. Firestore 규칙/DB를 확인하세요.';
+      notifyListeners();
     }
   }
 
