@@ -42,7 +42,7 @@ class _AlarmPageState extends State<AlarmPage> {
 
     return FeatureScaffold(
       title: '알람 / 타이머',
-      subtitle: '말로 시간을 말하거나, 버튼을 눌러 시작',
+      subtitle: '시간 설정 · 시작 · 일시정지 · 정지 · 리셋',
       emoji: '⏰',
       accent: const Color(0xFFE08A5A),
       variant: FeatureVariant.stripe,
@@ -51,10 +51,10 @@ class _AlarmPageState extends State<AlarmPage> {
         children: [
           NlAssistInput(
             controller: _nl,
-            hintText: '예) 10분 타이머 맞춰 줘',
+            hintText: '예) 10분 타이머 / 시작 / 일시정지 / 정지 / 리셋',
             busy: timer.busy,
-            submitLabel: '알람 설정',
-            busyLabel: '설정 중…',
+            submitLabel: '실행',
+            busyLabel: '처리 중…',
             onSubmit: _applyNl,
             onVoiceSubmit: (t) async {
               _nl.text = t;
@@ -158,6 +158,13 @@ class _AlarmPageState extends State<AlarmPage> {
                 child: OutlinedButton(
                   onPressed: timer.pause,
                   child: const Text('일시정지'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: timer.pause,
+                  child: const Text('정지'),
                 ),
               ),
               const SizedBox(width: 8),

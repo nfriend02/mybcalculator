@@ -56,9 +56,29 @@ class ExpenseController extends ChangeNotifier {
     final fs = _firestore;
     if (fs == null) return;
     try {
-      await fs.create(collectionPath: 'expenses', data: item.toMap());
+      await fs.create(
+        collectionPath: 'expenses',
+        data: item.toMap(),
+        docId: item.id,
+      );
     } catch (e) {
       debugPrint('Expense add: $e');
+    }
+  }
+
+  Future<void> removeByIds(Iterable<String> ids) async {
+    final idSet = ids.toSet();
+    if (idSet.isEmpty) return;
+    _items.removeWhere((e) => idSet.contains(e.id));
+    notifyListeners();
+    final fs = _firestore;
+    if (fs == null) return;
+    for (final id in idSet) {
+      try {
+        await fs.softDelete(collectionPath: 'expenses', docId: id);
+      } catch (e) {
+        debugPrint('Expense remove $id: $e');
+      }
     }
   }
 

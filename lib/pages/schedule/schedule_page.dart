@@ -19,6 +19,7 @@ class SchedulePage extends StatefulWidget {
 class _SchedulePageState extends State<SchedulePage> {
   final _title = TextEditingController();
   final _nl = TextEditingController();
+  final Set<String> _selected = {};
   String? _error;
 
   @override
@@ -44,10 +45,22 @@ class _SchedulePageState extends State<SchedulePage> {
     }
   }
 
+  Future<void> _deleteSelected() async {
+    if (_selected.isEmpty) return;
+    final controller = context.read<ScheduleController>();
+    final ids = _selected.toList();
+    await controller.removeByIds(ids);
+    if (!mounted) return;
+    setState(() => _selected.clear());
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ScheduleController>();
     final fmt = DateFormat('yyyy-MM-dd HH:mm');
+    final selectedCount = _selected
+        .where((id) => controller.items.any((e) => e.id == id))
+        .length;
 
     return FeatureScaffold(
       title: '일정 관리',
@@ -138,7 +151,20 @@ class _SchedulePageState extends State<SchedulePage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonalIcon(
+              onPressed: selectedCount == 0 ? null : _deleteSelected,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(
+                selectedCount == 0
+                    ? '기록 삭제'
+                    : '기록 삭제 ($selectedCount)',
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: Material(
               color: AppTheme.surfaceElevated,
@@ -149,6 +175,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   items: controller.items,
                   emptyMessage: '일정이 비어 있어요',
                   itemBuilder: (context, item, index) {
+                    final checked = _selected.contains(item.id);
                     return ListTile(
                       tileColor: AppTheme.panel,
                       shape: RoundedRectangleBorder(
@@ -161,6 +188,27 @@ class _SchedulePageState extends State<SchedulePage> {
                       ),
                       title: Text(item.title),
                       subtitle: Text(fmt.format(item.when)),
+                      trailing: Checkbox(
+                        value: checked,
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selected.add(item.id);
+                            } else {
+                              _selected.remove(item.id);
+                            }
+                          });
+                        },
+                      ),
+                      onTap: () {
+                        setState(() {
+                          if (checked) {
+                            _selected.remove(item.id);
+                          } else {
+                            _selected.add(item.id);
+                          }
+                        });
+                      },
                     );
                   },
                 ),

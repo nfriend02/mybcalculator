@@ -19,6 +19,7 @@ class _ExpensePageState extends State<ExpensePage> {
   final _title = TextEditingController();
   final _amount = TextEditingController();
   final _nl = TextEditingController();
+  final Set<String> _selected = {};
   String? _error;
 
   @override
@@ -45,9 +46,21 @@ class _ExpensePageState extends State<ExpensePage> {
     }
   }
 
+  Future<void> _deleteSelected() async {
+    if (_selected.isEmpty) return;
+    final controller = context.read<ExpenseController>();
+    final ids = _selected.toList();
+    await controller.removeByIds(ids);
+    if (!mounted) return;
+    setState(() => _selected.clear());
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ExpenseController>();
+    final selectedCount = _selected
+        .where((id) => controller.items.any((e) => e.id == id))
+        .length;
 
     return FeatureScaffold(
       title: '지출 기록',
@@ -153,7 +166,20 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonalIcon(
+              onPressed: selectedCount == 0 ? null : _deleteSelected,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(
+                selectedCount == 0
+                    ? '기록 삭제'
+                    : '기록 삭제 ($selectedCount)',
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: Material(
               color: AppTheme.surfaceElevated,
@@ -164,6 +190,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   items: controller.items,
                   emptyMessage: '지출 내역이 없어요',
                   itemBuilder: (context, item, index) {
+                    final checked = _selected.contains(item.id);
                     return ListTile(
                       tileColor: AppTheme.panel,
                       shape: RoundedRectangleBorder(
@@ -175,12 +202,33 @@ class _ExpensePageState extends State<ExpensePage> {
                         child: Text('${index + 1}'),
                       ),
                       title: Text(item.title),
-                      trailing: Text(
+                      subtitle: Text(
                         '₩${item.amount.toStringAsFixed(0)}',
                         style: GoogleFonts.notoSansKr(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
+                      trailing: Checkbox(
+                        value: checked,
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selected.add(item.id);
+                            } else {
+                              _selected.remove(item.id);
+                            }
+                          });
+                        },
+                      ),
+                      onTap: () {
+                        setState(() {
+                          if (checked) {
+                            _selected.remove(item.id);
+                          } else {
+                            _selected.add(item.id);
+                          }
+                        });
+                      },
                     );
                   },
                 ),

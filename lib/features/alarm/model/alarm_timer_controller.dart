@@ -72,7 +72,7 @@ class AlarmTimerController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// NL: "10분 타이머", "5분만 알람", "1시간 30분" …
+  /// NL: "10분 타이머", "시작", "일시정지", "정지", "리셋" …
   Future<bool> applyNaturalLanguage(String utterance, {bool autoStart = true}) async {
     final text = utterance.trim();
     if (text.isEmpty) return false;
@@ -83,6 +83,17 @@ class AlarmTimerController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final control = _parseControlCommand(text);
+      if (control != null) {
+        final ok = _applyControl(control);
+        if (!ok) {
+          _lastError = control == _AlarmControl.start
+              ? '먼저 시간을 설정해 주세요. 예: "10분 타이머"'
+              : '실행할 수 없어요.';
+        }
+        return ok;
+      }
+
       final local = _parseDuration(text);
       if (local != null && local > Duration.zero) {
         setDuration(local);
@@ -92,10 +103,28 @@ class AlarmTimerController extends ChangeNotifier {
       }
 
       final ai = await _gemini.calculate(
-        '알람/타이머 시간만 추출하세요. result는 총 초(숫자만). '
-        '예: "10분" → 600, "1시간 30분" → 5400\n\n$text',
+        '알람/타이머. 제어면 result에 START/PAUSE/STOP/RESET 중 하나. '
+        '시간이면 result는 총 초(숫자만). 예: "10분" → 600\n\n$text',
       );
       if (ai != null) {
+        final token = ai.result.trim().toUpperCase();
+        final fromAi = switch (token) {
+          'START' => _AlarmControl.start,
+          'PAUSE' => _AlarmControl.pause,
+          'STOP' => _AlarmControl.stop,
+          'RESET' => _AlarmControl.reset,
+          _ => null,
+        };
+        if (fromAi != null) {
+          final ok = _applyControl(fromAi);
+          if (!ok) {
+            _lastError = fromAi == _AlarmControl.start
+                ? '먼저 시간을 설정해 주세요. 예: "10분 타이머"'
+                : '실행할 수 없어요.';
+          }
+          return ok;
+        }
+
         final seconds = int.tryParse(ai.result.replaceAll(RegExp(r'[^0-9]'), ''));
         if (seconds != null && seconds > 0) {
           setDuration(Duration(seconds: seconds));
@@ -107,7 +136,8 @@ class AlarmTimerController extends ChangeNotifier {
         }
       }
 
-      _lastError = '시간을 이해하지 못했어요. 예: "10분 타이머 맞춰줘"';
+      _lastError =
+          '이해하지 못했어요. 예: "10분 타이머", "시작", "일시정지", "정지", "리셋"';
       return false;
     } catch (e, st) {
       debugPrint('alarm NL: $e\n$st');
@@ -117,6 +147,60 @@ class AlarmTimerController extends ChangeNotifier {
       _busy = false;
       notifyListeners();
     }
+  }
+
+  bool _applyControl(_AlarmControl control) {
+    switch (control) {
+      case _AlarmControl.start:
+        if (_remaining == Duration.zero) return false;
+        start();
+        _note = '타이머를 시작했습니다.';
+        return true;
+      case _AlarmControl.pause:
+        pause();
+        _note = '타이머를 일시정지했습니다.';
+        return true;
+      case _AlarmControl.stop:
+        pause();
+        _note = '타이머를 정지했습니다.';
+        return true;
+      case _AlarmControl.reset:
+        reset();
+        _note = '타이머를 리셋했습니다.';
+        return true;
+    }
+  }
+
+  /// Pure control utterances (no duration). Duration + "시작" keeps auto-start path.
+  static _AlarmControl? _parseControlCommand(String text) {
+    final t = text.trim().toLowerCase();
+    final hasDuration = _parseDuration(t) != null;
+    if (hasDuration) return null;
+
+    final isPause = RegExp(
+      r'일시\s*정지|일시정지|pause|paused?|잠깐|멈춰',
+      caseSensitive: false,
+    ).hasMatch(t);
+    final isReset = RegExp(
+      r'리셋|초기화|reset|클리어|clear',
+      caseSensitive: false,
+    ).hasMatch(t);
+    final isStop = RegExp(
+      r'정지|중지|stop|스톱',
+      caseSensitive: false,
+    ).hasMatch(t) &&
+        !isPause;
+    final isStart = RegExp(
+      r'시작|재개|계속|start|resume|스타트',
+      caseSensitive: false,
+    ).hasMatch(t);
+
+    // Prefer more specific verbs when several appear.
+    if (isReset) return _AlarmControl.reset;
+    if (isPause) return _AlarmControl.pause;
+    if (isStop) return _AlarmControl.stop;
+    if (isStart) return _AlarmControl.start;
+    return null;
   }
 
   Future<bool> applyFromFile({
@@ -215,3 +299,5 @@ class AlarmTimerController extends ChangeNotifier {
     super.dispose();
   }
 }
+
+enum _AlarmControl { start, pause, stop, reset }
