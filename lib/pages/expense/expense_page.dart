@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../app/theme/app_theme.dart';
 import '../../features/expense/model/expense_controller.dart';
 import '../../shared/ui/widgets/feature_scaffold.dart';
+import '../../shared/ui/widgets/nl_assist_input.dart';
 import '../../shared/ui/widgets/paged_list_view.dart';
 
 class ExpensePage extends StatefulWidget {
@@ -17,12 +18,31 @@ class ExpensePage extends StatefulWidget {
 class _ExpensePageState extends State<ExpensePage> {
   final _title = TextEditingController();
   final _amount = TextEditingController();
+  final _nl = TextEditingController();
+  String? _error;
 
   @override
   void dispose() {
     _title.dispose();
     _amount.dispose();
+    _nl.dispose();
     super.dispose();
+  }
+
+  Future<void> _applyNl() async {
+    final text = _nl.text.trim();
+    if (text.isEmpty) return;
+    final controller = context.read<ExpenseController>();
+    setState(() => _error = null);
+    final ok = await controller.applyNaturalLanguage(text);
+    if (!mounted) return;
+    if (ok) {
+      _nl.clear();
+    } else {
+      setState(() {
+        _error = controller.lastError ?? '지출을 기록하지 못했어요.';
+      });
+    }
   }
 
   @override
@@ -33,11 +53,62 @@ class _ExpensePageState extends State<ExpensePage> {
       title: '지출 기록',
       subtitle: '합계 ₩${controller.total.toStringAsFixed(0)}',
       emoji: '💸',
-      accent: AppTheme.peach,
+      accent: const Color(0xFFD4926A),
+      variant: FeatureVariant.stripe,
       scrollable: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          NlAssistInput(
+            controller: _nl,
+            hintText: '예) 커피 4,500원 썼어',
+            busy: controller.busy,
+            submitLabel: '지출 기록',
+            busyLabel: '기록 중…',
+            minLines: 2,
+            maxLines: 3,
+            onSubmit: _applyNl,
+            onVoiceSubmit: (t) async {
+              _nl.text = t;
+              await _applyNl();
+            },
+            onFileSubmit: (file) async {
+              setState(() => _error = null);
+              final ok = await controller.applyFromFile(
+                bytes: file.bytes,
+                fileName: file.name,
+                extension: file.extension,
+                userHint: _nl.text.trim().isEmpty ? null : _nl.text.trim(),
+              );
+              if (!mounted) return;
+              if (!ok) {
+                setState(() {
+                  _error = controller.lastError ?? '파일에서 지출을 찾지 못했어요.';
+                });
+              }
+            },
+          ),
+          if (controller.note != null && _error == null) ...[
+            const SizedBox(height: 6),
+            Text(
+              controller.note!,
+              style: GoogleFonts.notoSansKr(
+                color: AppTheme.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ],
+          if (_error != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _error!,
+              style: GoogleFonts.notoSansKr(
+                color: AppTheme.dangerText,
+                fontSize: 12,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -47,7 +118,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   decoration: InputDecoration(
                     hintText: '항목',
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.9),
+                    fillColor: AppTheme.surfaceElevated,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -62,7 +133,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   decoration: InputDecoration(
                     hintText: '금액',
                     filled: true,
-                    fillColor: AppTheme.peach.withValues(alpha: 0.45),
+                    fillColor: AppTheme.surfaceElevated,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -85,7 +156,7 @@ class _ExpensePageState extends State<ExpensePage> {
           const SizedBox(height: 16),
           Expanded(
             child: Material(
-              color: Colors.white.withValues(alpha: 0.55),
+              color: AppTheme.surfaceElevated,
               borderRadius: BorderRadius.circular(18),
               child: Padding(
                 padding: const EdgeInsets.all(8),
@@ -94,18 +165,21 @@ class _ExpensePageState extends State<ExpensePage> {
                   emptyMessage: '지출 내역이 없어요',
                   itemBuilder: (context, item, index) {
                     return ListTile(
-                      tileColor: Colors.white.withValues(alpha: 0.9),
+                      tileColor: AppTheme.panel,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: AppTheme.peach,
+                        backgroundColor:
+                            const Color(0xFFD4926A).withValues(alpha: 0.35),
                         child: Text('${index + 1}'),
                       ),
                       title: Text(item.title),
                       trailing: Text(
                         '₩${item.amount.toStringAsFixed(0)}',
-                        style: GoogleFonts.nunito(fontWeight: FontWeight.w800),
+                        style: GoogleFonts.notoSansKr(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     );
                   },

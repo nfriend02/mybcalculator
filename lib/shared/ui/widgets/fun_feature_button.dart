@@ -28,44 +28,39 @@ class _FunFeatureButtonState extends State<FunFeatureButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
-        scale: _pressed ? 0.94 : 1,
+        scale: _pressed ? 0.96 : 1,
         duration: const Duration(milliseconds: 120),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: widget.color.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: widget.color.withValues(alpha: 0.4),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            color: AppTheme.panel,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(widget.emoji, style: const TextStyle(fontSize: 32)),
+              Text(widget.emoji, style: const TextStyle(fontSize: 28)),
               const SizedBox(height: 8),
               Text(
                 widget.label,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.ink,
+                style: GoogleFonts.notoSansKr(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
                 ),
               ),
             ],
           ),
         ),
       ),
-    ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08, end: 0);
+    ).animate().fadeIn(duration: 300.ms);
   }
 }

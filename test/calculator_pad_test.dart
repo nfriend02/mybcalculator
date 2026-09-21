@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:mybcalculator/features/calculator/model/calculator_controller.dart';
 import 'package:mybcalculator/features/calculator/ui/calculator_pad.dart';
-import 'package:mybcalculator/pages/calculator/calculator_page.dart';
+import 'package:mybcalculator/pages/home/home_page.dart';
 
 void main() {
   testWidgets('CalculatorPad digits and equals update display', (tester) async {
@@ -33,25 +33,23 @@ void main() {
     expect(controller.display, '3');
   });
 
-  testWidgets('CalculatorPage finds provider and shows keys', (tester) async {
+  testWidgets('HomePage shows sentence panel and keypad', (tester) async {
     final controller = CalculatorController();
-    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
       ChangeNotifierProvider<CalculatorController>.value(
         value: controller,
         child: const MaterialApp(
-          home: Scaffold(body: CalculatorPage()),
+          home: Scaffold(body: HomePage()),
         ),
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('7'), findsWidgets);
-    await tester.tap(find.text('9'));
-    await tester.pump();
-    expect(controller.display, '9');
+    expect(find.textContaining('나의 만능 AI 계산기'), findsOneWidget);
+    expect(find.text('키패드'), findsOneWidget);
+    expect(find.text('계산하기'), findsOneWidget);
   });
 }

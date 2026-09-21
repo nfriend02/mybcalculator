@@ -4,10 +4,12 @@ import 'package:provider/single_child_widget.dart';
 
 import '../features/alarm/model/alarm_timer_controller.dart';
 import '../features/calculator/model/calculator_controller.dart';
+import '../features/currency/model/currency_controller.dart';
 import '../features/expense/model/expense_controller.dart';
 import '../features/schedule/model/schedule_controller.dart';
+import '../features/unit_converter/model/unit_controller.dart';
+import '../features/weather/model/weather_controller.dart';
 import '../pages/alarm/alarm_page.dart';
-import '../pages/calculator/calculator_page.dart';
 import '../pages/currency/currency_page.dart';
 import '../pages/expense/expense_page.dart';
 import '../pages/home/home_page.dart';
@@ -34,6 +36,17 @@ class AppBootstrap {
           create: (_) =>
               CalculatorController(firestore: firestore)..loadHistory(),
         ),
+        ChangeNotifierProvider<CurrencyController>(
+          create: (_) =>
+              CurrencyController(firestore: firestore)..loadHistory(),
+        ),
+        ChangeNotifierProvider<WeatherController>(
+          create: (_) =>
+              WeatherController(firestore: firestore)..loadHistory(),
+        ),
+        ChangeNotifierProvider<UnitController>(
+          create: (_) => UnitController(firestore: firestore)..loadHistory(),
+        ),
         ChangeNotifierProvider<AlarmTimerController>(
           create: (_) => AlarmTimerController(),
         ),
@@ -58,7 +71,7 @@ class AppBootstrap {
             GoRoute(path: '/', builder: (_, _) => const HomePage()),
             GoRoute(
               path: '/calculator',
-              builder: (_, _) => const CalculatorPage(),
+              redirect: (_, _) => '/',
             ),
             GoRoute(
               path: '/currency',

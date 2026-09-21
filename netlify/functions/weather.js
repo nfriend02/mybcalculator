@@ -3,29 +3,83 @@
  * Proxies OpenWeatherMap so API keys stay server-side.
  */
 const CITY_ALIASES = {
-  요코하마: 'Yokohama',
-  요꼬하마: 'Yokohama',
+  // Korea
   서울: 'Seoul',
   부산: 'Busan',
   인천: 'Incheon',
   대구: 'Daegu',
   대전: 'Daejeon',
   광주: 'Gwangju',
+  울산: 'Ulsan',
+  제주: 'Jeju',
+  // Japan
   도쿄: 'Tokyo',
   오사카: 'Osaka',
   교토: 'Kyoto',
   나고야: 'Nagoya',
+  요코하마: 'Yokohama',
+  요꼬하마: 'Yokohama',
+  후쿠오카: 'Fukuoka',
+  삿포로: 'Sapporo',
+  // China / TW / HK
   베이징: 'Beijing',
+  북경: 'Beijing',
   상하이: 'Shanghai',
+  상해: 'Shanghai',
+  광저우: 'Guangzhou',
+  선전: 'Shenzhen',
+  홍콩: 'Hong Kong',
+  타이베이: 'Taipei',
+  대만: 'Taipei',
+  // SE Asia
+  싱가포르: 'Singapore',
+  방콕: 'Bangkok',
+  호치민: 'Ho Chi Minh City',
+  하노이: 'Hanoi',
+  자카르타: 'Jakarta',
+  쿠알라룸푸르: 'Kuala Lumpur',
+  마닐라: 'Manila',
+  // Americas
   뉴욕: 'New York',
+  로스앤젤레스: 'Los Angeles',
+  엘에이: 'Los Angeles',
+  샌프란시스코: 'San Francisco',
+  시카고: 'Chicago',
+  시애틀: 'Seattle',
+  토론토: 'Toronto',
+  밴쿠버: 'Vancouver',
+  멕시코시티: 'Mexico City',
+  // Europe
   런던: 'London',
   파리: 'Paris',
+  베를린: 'Berlin',
+  로마: 'Rome',
+  마드리드: 'Madrid',
+  바르셀로나: 'Barcelona',
+  암스테르담: 'Amsterdam',
+  취리히: 'Zurich',
+  빈시: 'Vienna',
+  비엔나: 'Vienna',
+  모스크바: 'Moscow',
+  // Oceania / Mid-East / Africa / India
+  시드니: 'Sydney',
+  멜버른: 'Melbourne',
+  오클랜드: 'Auckland',
+  두바이: 'Dubai',
+  아부다비: 'Abu Dhabi',
+  카이로: 'Cairo',
+  케이프타운: 'Cape Town',
+  뭄바이: 'Mumbai',
+  델리: 'New Delhi',
+  뉴델리: 'New Delhi',
+  방갈로르: 'Bengaluru',
 };
 
 function resolveCity(q) {
   const raw = (q || 'Seoul').trim();
   if (!raw) return 'Seoul';
-  return CITY_ALIASES[raw] || CITY_ALIASES[raw.replace(/\s+/g, '')] || raw;
+  const compact = raw.replace(/\s+/g, '');
+  return CITY_ALIASES[raw] || CITY_ALIASES[compact] || raw;
 }
 
 function json(statusCode, body) {

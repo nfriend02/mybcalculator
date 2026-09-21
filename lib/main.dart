@@ -22,10 +22,20 @@ Future<void> main() async {
   var firebaseReady = false;
   if (DefaultFirebaseOptions.isConfigured) {
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      final options = DefaultFirebaseOptions.currentPlatform;
+      // Hot restart can leave a stale Firebase app pointing at an old project.
+      if (Firebase.apps.isNotEmpty) {
+        final existing = Firebase.app();
+        final sameProject = existing.options.projectId == options.projectId;
+        if (!sameProject) {
+          await existing.delete();
+        }
+      }
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(options: options);
+      }
       firebaseReady = true;
+      debugPrint('Firebase ready: ${options.projectId}');
     } catch (e, st) {
       debugPrint('Firebase init skipped/failed: $e\n$st');
     }
@@ -51,9 +61,10 @@ class SmartCalculatorRoot extends StatelessWidget {
     return MultiProvider(
       providers: bootstrap.providers(),
       child: MaterialApp.router(
-        title: 'AI Smart Calculator',
+        title: '센툴 AI Calculator',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
+        theme: AppTheme.dark(),
+        themeMode: ThemeMode.dark,
         routerConfig: router,
       ),
     );

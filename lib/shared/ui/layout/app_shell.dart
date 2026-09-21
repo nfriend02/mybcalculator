@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../config/breakpoints.dart';
 
 class NavItem {
   const NavItem({
@@ -11,83 +11,84 @@ class NavItem {
     required this.icon,
     required this.path,
     required this.accent,
-    required this.emoji,
+    required this.variant,
   });
 
   final String label;
   final IconData icon;
   final String path;
   final Color accent;
-  final String emoji;
+
+  /// Visual variation key for each menu screen.
+  final String variant;
 }
 
+/// Top tab menus (upload lives only in the desktop sidebar).
 const kNavItems = <NavItem>[
-  NavItem(
-    label: '홈',
-    icon: Icons.home_rounded,
-    path: '/',
-    accent: AppTheme.mint,
-    emoji: '🏠',
-  ),
   NavItem(
     label: '계산기',
     icon: Icons.calculate_rounded,
-    path: '/calculator',
-    accent: AppTheme.peach,
-    emoji: '🧮',
+    path: '/',
+    accent: AppTheme.gold,
+    variant: 'calculator',
   ),
   NavItem(
     label: '환율',
     icon: Icons.currency_exchange_rounded,
     path: '/currency',
-    accent: AppTheme.butter,
-    emoji: '💱',
+    accent: Color(0xFFC9A227),
+    variant: 'currency',
   ),
   NavItem(
     label: '날씨',
     icon: Icons.wb_sunny_rounded,
     path: '/weather',
-    accent: AppTheme.sky,
-    emoji: '🌤️',
+    accent: Color(0xFFD4B896),
+    variant: 'weather',
   ),
   NavItem(
     label: '단위',
     icon: Icons.straighten_rounded,
     path: '/units',
-    accent: AppTheme.lavender,
-    emoji: '📏',
+    accent: Color(0xFFB8A48A),
+    variant: 'units',
   ),
   NavItem(
     label: '알람',
     icon: Icons.alarm_rounded,
     path: '/alarm',
-    accent: AppTheme.coral,
-    emoji: '⏰',
+    accent: Color(0xFFE08A5A),
+    variant: 'alarm',
   ),
   NavItem(
     label: '일정',
     icon: Icons.event_note_rounded,
     path: '/schedule',
-    accent: AppTheme.mint,
-    emoji: '📅',
+    accent: Color(0xFFA8967A),
+    variant: 'schedule',
   ),
   NavItem(
     label: '지출',
     icon: Icons.payments_rounded,
     path: '/expense',
-    accent: AppTheme.peach,
-    emoji: '💸',
-  ),
-  NavItem(
-    label: '업로드',
-    icon: Icons.cloud_upload_rounded,
-    path: '/upload',
-    accent: AppTheme.sky,
-    emoji: '☁️',
+    accent: Color(0xFFD4926A),
+    variant: 'expense',
   ),
 ];
 
-NavItem? navItemForPath(String location) {
+const kUploadNavItem = NavItem(
+  label: '업로드',
+  icon: Icons.cloud_upload_rounded,
+  path: '/upload',
+  accent: Color(0xFFBFA87A),
+  variant: 'upload',
+);
+
+NavItem navItemForPath(String location) {
+  if (location == kUploadNavItem.path ||
+      location.startsWith('${kUploadNavItem.path}/')) {
+    return kUploadNavItem;
+  }
   for (final item in kNavItems) {
     if (item.path == '/') {
       if (location == '/') return item;
@@ -100,7 +101,8 @@ NavItem? navItemForPath(String location) {
   return kNavItems.first;
 }
 
-/// Bright pastel shell with **top tabs** (no sidebar).
+/// Desktop: logo-only left sidebar + tabs + content.
+/// Mobile: logo row + horizontal tabs + content (no upload entry).
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
@@ -113,104 +115,266 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = navItemForPath(location) ?? kNavItems.first;
+    return Scaffold(
+      backgroundColor: AppTheme.bg,
+      body: DecoratedBox(
+        decoration: AppTheme.pageBackground(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final desktop = Breakpoints.isDesktop(constraints.maxWidth);
 
-    return DecoratedBox(
-      decoration: AppTheme.pastelBackground(),
-      child: Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _BrandHeader(accent: active.accent),
-              _TabStrip(location: location),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: child,
-                ),
-              ),
-            ],
-          ),
+            // Upload is sidebar-only — leave the page on narrow layouts.
+            if (!desktop &&
+                (location == kUploadNavItem.path ||
+                    location.startsWith('${kUploadNavItem.path}/'))) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (context.mounted) context.go('/');
+              });
+            }
+
+            final content = Material(
+              type: MaterialType.transparency,
+              child: desktop
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _LogoSidebar(location: location),
+                        Expanded(
+                          child: SafeArea(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _TabBar(location: location),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      20,
+                                      4,
+                                      24,
+                                      16,
+                                    ),
+                                    child: child,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : SafeArea(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _MobileLogoBar(),
+                          _TabBar(location: location, compact: true),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+                              child: child,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            );
+            return content;
+          },
         ),
       ),
     );
   }
 }
 
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.accent});
-  final Color accent;
+/// Left sidebar: logo at top, upload button at bottom (desktop only).
+class _LogoSidebar extends StatelessWidget {
+  const _LogoSidebar({required this.location});
+  final String location;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [accent, accent.withValues(alpha: 0.55)],
-              ),
-              borderRadius: BorderRadius.circular(14),
+    final uploadSelected = location == kUploadNavItem.path ||
+        location.startsWith('${kUploadNavItem.path}/');
+
+    return Container(
+      width: 132,
+      decoration: const BoxDecoration(
+        color: AppTheme.surface,
+        border: Border(
+          right: BorderSide(color: AppTheme.border),
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(10, 18, 10, 8),
+              child: _BrandLogo(compact: true),
             ),
-            child: const Icon(Icons.auto_awesome, color: AppTheme.ink),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI Smart Calculator',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    height: 1.05,
-                    color: AppTheme.ink,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 350.ms)
-                    .slideX(begin: -0.06, end: 0),
-                Text(
-                  '밝고 즐거운 계산 메이트',
-                  style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    color: AppTheme.ink.withValues(alpha: 0.55),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 16),
+              child: Tooltip(
+                message: kUploadNavItem.label,
+                child: Material(
+                  color: uploadSelected
+                      ? kUploadNavItem.accent.withValues(alpha: 0.25)
+                      : AppTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: () => context.go(kUploadNavItem.path),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: uploadSelected
+                              ? kUploadNavItem.accent
+                              : AppTheme.border,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            kUploadNavItem.icon,
+                            size: 22,
+                            color: uploadSelected
+                                ? kUploadNavItem.accent
+                                : AppTheme.textSecondary,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            kUploadNavItem.label,
+                            style: GoogleFonts.notoSansKr(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: uploadSelected
+                                  ? AppTheme.textPrimary
+                                  : AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _TabStrip extends StatelessWidget {
-  const _TabStrip({required this.location});
-  final String location;
+class _MobileLogoBar extends StatelessWidget {
+  const _MobileLogoBar();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 64,
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 2),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: _BrandLogo(compact: false),
+      ),
+    );
+  }
+}
+
+/// Calligraphy wordmark — 나의 만능 AI 비서 (no Sentul mark).
+class _BrandLogo extends StatelessWidget {
+  const _BrandLogo({required this.compact});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = compact ? 118.0 : 56.0;
+    return Semantics(
+      label: '나의 만능 AI 비서',
+      child: Image.asset(
+        'assets/images/brand_logo.png',
+        height: height,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, _, _) => _CalligraphyFallback(compact: compact),
+      ),
+    );
+  }
+}
+
+/// Text fallback if the logo asset fails to load.
+class _CalligraphyFallback extends StatelessWidget {
+  const _CalligraphyFallback({required this.compact});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = GoogleFonts.nanumBrushScript(
+      color: AppTheme.gold,
+      height: 1.15,
+      fontWeight: FontWeight.w600,
+      fontSize: compact ? 28 : 32,
+      shadows: [
+        Shadow(
+          color: AppTheme.gold.withValues(alpha: 0.35),
+          blurRadius: 12,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+
+    if (compact) {
+      return Text(
+        '나의\n만능 AI\n비서',
+        textAlign: TextAlign.center,
+        style: style,
+      );
+    }
+
+    return Text(
+      '나의 만능 AI 비서',
+      style: style.copyWith(fontSize: 36),
+    );
+  }
+}
+
+class _TabBar extends StatelessWidget {
+  const _TabBar({required this.location, this.compact = false});
+
+  final String location;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: compact ? 56 : 60,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 16,
+        vertical: 8,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppTheme.border),
+        ),
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: kNavItems.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final item = kNavItems[i];
-          final selected = location == item.path ||
-              (item.path != '/' && location.startsWith(item.path));
-          return _TabChip(item: item, selected: selected);
+          final selected = item.path == '/'
+              ? location == '/'
+              : location == item.path || location.startsWith('${item.path}/');
+          return _TabChip(
+            item: item,
+            selected: selected,
+            index: i + 1,
+          );
         },
       ),
     );
@@ -218,9 +382,15 @@ class _TabStrip extends StatelessWidget {
 }
 
 class _TabChip extends StatelessWidget {
-  const _TabChip({required this.item, required this.selected});
+  const _TabChip({
+    required this.item,
+    required this.selected,
+    required this.index,
+  });
+
   final NavItem item;
   final bool selected;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
@@ -228,49 +398,51 @@ class _TabChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => context.go(item.path),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: selected
-                ? item.accent
-                : Colors.white.withValues(alpha: 0.72),
-            borderRadius: BorderRadius.circular(20),
+                ? item.accent.withValues(alpha: 0.22)
+                : AppTheme.surfaceElevated,
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected
-                  ? item.accent
-                  : AppTheme.ink.withValues(alpha: 0.08),
+              color: selected ? item.accent : AppTheme.border,
             ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: item.accent.withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(item.emoji, style: const TextStyle(fontSize: 16)),
+              Text(
+                '$index',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: selected ? item.accent : AppTheme.textMuted,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                item.icon,
+                size: 16,
+                color: selected ? item.accent : AppTheme.textSecondary,
+              ),
               const SizedBox(width: 6),
               Text(
                 item.label,
-                style: GoogleFonts.nunito(
-                  fontWeight: FontWeight.w800,
+                style: GoogleFonts.notoSansKr(
                   fontSize: 13,
-                  color: AppTheme.ink,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? AppTheme.textPrimary
+                      : AppTheme.textSecondary,
                 ),
               ),
             ],
           ),
         ),
       ),
-    ).animate().fadeIn(duration: 250.ms).scale(
-          begin: const Offset(0.94, 0.94),
-          end: const Offset(1, 1),
-        );
+    );
   }
 }

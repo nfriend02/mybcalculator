@@ -9,9 +9,6 @@ import '../../shared/services/storage_service.dart';
 import '../../shared/ui/widgets/feature_scaffold.dart';
 import '../../shared/ui/widgets/paged_list_view.dart';
 
-/// Upload example page — portfolio checklist + Firebase Storage/Firestore.
-///
-/// Class name `UploadPage` matches the requested UploadPage example.
 class UploadPage extends StatefulWidget {
   const UploadPage({super.key, required this.firebaseReady});
 
@@ -50,9 +47,8 @@ class _UploadPageState extends State<UploadPage> {
     try {
       String url;
       var docId = DateTime.now().millisecondsSinceEpoch.toString();
-      final ext = file.name.contains('.')
-          ? file.name.split('.').last
-          : null;
+      final ext =
+          file.name.contains('.') ? file.name.split('.').last : null;
 
       if (widget.firebaseReady) {
         final storage = StorageService();
@@ -116,7 +112,8 @@ class _UploadPageState extends State<UploadPage> {
       title: '업로드',
       subtitle: '포트폴리오 체크리스트와 파일 업로드',
       emoji: '☁️',
-      accent: AppTheme.sky,
+      accent: const Color(0xFFBFA87A),
+      variant: FeatureVariant.stripe,
       scrollable: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -132,20 +129,21 @@ class _UploadPageState extends State<UploadPage> {
             const SizedBox(height: 8),
             Text(
               _status!,
-              style: GoogleFonts.nunito(
-                color: AppTheme.ink.withValues(alpha: 0.6),
-              ),
+              style: GoogleFonts.notoSansKr(color: AppTheme.textSecondary),
             ),
           ],
           const SizedBox(height: 16),
           Text(
             '업로드 목록 (페이지당 10개)',
-            style: GoogleFonts.fredoka(fontSize: 18),
+            style: GoogleFonts.notoSansKr(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 8),
           Expanded(
             child: Material(
-              color: Colors.white.withValues(alpha: 0.55),
+              color: AppTheme.surfaceElevated,
               borderRadius: BorderRadius.circular(18),
               child: Padding(
                 padding: const EdgeInsets.all(8),
@@ -154,12 +152,12 @@ class _UploadPageState extends State<UploadPage> {
                   emptyMessage: '아직 업로드한 파일이 없어요',
                   itemBuilder: (context, item, index) {
                     return ListTile(
-                      tileColor: Colors.white.withValues(alpha: 0.9),
+                      tileColor: AppTheme.panel,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: AppTheme.sky,
+                        backgroundColor: const Color(0xFFBFA87A).withValues(alpha: 0.35),
                         child: Text('${index + 1}'),
                       ),
                       title: Text(item.name),
@@ -216,20 +214,24 @@ class _ChecklistCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.lavender.withValues(alpha: 0.45),
+        color: AppTheme.panel,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             meta['title'] ?? 'App',
-            style: GoogleFonts.fredoka(fontSize: 20),
+            style: GoogleFonts.notoSansKr(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             meta['description'] ?? '',
-            style: GoogleFonts.nunito(fontSize: 13),
+            style: GoogleFonts.notoSansKr(fontSize: 13),
           ),
           const SizedBox(height: 12),
           for (final c in checks)
@@ -240,12 +242,12 @@ class _ChecklistCard extends StatelessWidget {
                   Icon(
                     c.$2 ? Icons.check_circle : Icons.radio_button_unchecked,
                     size: 18,
-                    color: c.$2
-                        ? Colors.green
-                        : AppTheme.ink.withValues(alpha: 0.35),
+                    color: c.$2 ? Colors.green : AppTheme.textMuted,
                   ),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(c.$1, style: GoogleFonts.nunito())),
+                  Expanded(
+                    child: Text(c.$1, style: GoogleFonts.notoSansKr()),
+                  ),
                 ],
               ),
             ),

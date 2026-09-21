@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../calculator/domain/calculator_engine.dart';
+import 'stt_web_stub.dart' if (dart.library.html) 'stt_web.dart' as web_stt;
 
 enum VoiceIntent { calculate, currency, weather, money, unknown }
 
@@ -24,14 +26,18 @@ class VoiceParseResult {
   final String? fromCurrency;
 }
 
+/// Browser / device speech-to-text → Korean text for Gemini calc.
 class VoiceRecognitionService {
   SpeechToText? _speech;
   bool _ready = false;
   bool _failed = false;
+  bool _listening = false;
 
-  bool get isAvailable => _ready;
+  bool get isAvailable => kIsWeb ? true : _ready;
+  bool get isListening => _listening;
 
   Future<bool> init() async {
+    if (kIsWeb) return true;
     if (_failed) return false;
     if (_ready) return true;
     try {
@@ -49,28 +55,85 @@ class VoiceRecognitionService {
     }
   }
 
-  Future<String?> listenOnce({String localeId = 'ko_KR'}) async {
-    if (kIsWeb) {
-      // Web Speech API via speech_to_text is flaky; avoid blocking calculator UX.
-      return null;
-    }
+  /// Capture one utterance (Korean). Chrome web uses native Web Speech API.
+  Future<String?> listenOnce({
+    String localeId = 'ko_KR',
+    Duration listenFor = const Duration(seconds: 12),
+    void Function(String partial)? onPartial,
+  }) async {
+    _listening = true;
     try {
+      if (kIsWeb) {
+        return await web_stt.webListenOnce(
+          localeId: localeId.replaceAll('_', '-'),
+          listenFor: listenFor,
+          onPartial: onPartial,
+        );
+      }
+
       final ok = await init();
       if (!ok || _speech == null) return null;
-      String? result;
+
+      if (_speech!.isListening) {
+        await _speech!.stop();
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      }
+
+      final completer = Completer<String?>();
+      var latest = '';
+
       await _speech!.listen(
         onResult: (r) {
-          if (r.finalResult) result = r.recognizedWords;
+          final words = r.recognizedWords.trim();
+          if (words.isNotEmpty) {
+            latest = words;
+            onPartial?.call(latest);
+          }
+          if (r.finalResult && !completer.isCompleted) {
+            completer.complete(latest.isEmpty ? null : latest);
+          }
         },
-        listenOptions: SpeechListenOptions(localeId: localeId),
+        listenOptions: SpeechListenOptions(
+          localeId: localeId,
+          listenFor: listenFor,
+          pauseFor: const Duration(seconds: 4),
+          partialResults: true,
+          cancelOnError: false,
+          listenMode: ListenMode.dictation,
+        ),
       );
-      await Future<void>.delayed(const Duration(seconds: 4));
-      await _speech!.stop();
-      return result;
+
+      final result = await completer.future.timeout(
+        listenFor + const Duration(seconds: 2),
+        onTimeout: () => latest.isEmpty ? null : latest,
+      );
+
+      if (_speech!.isListening) {
+        await _speech!.stop();
+      }
+      // Prefer last partial if "final" never arrived.
+      if (result != null && result.isNotEmpty) return result;
+      return latest.isEmpty ? null : latest;
     } catch (e, st) {
       debugPrint('STT listen failed: $e\n$st');
+      try {
+        await _speech?.stop();
+      } catch (_) {}
       return null;
+    } finally {
+      _listening = false;
     }
+  }
+
+  Future<void> cancel({bool discardResult = true}) async {
+    _listening = false;
+    if (kIsWeb) {
+      await web_stt.webStopListening(discardResult: discardResult);
+      return;
+    }
+    try {
+      await _speech?.cancel();
+    } catch (_) {}
   }
 
   VoiceParseResult parse(String utterance) {

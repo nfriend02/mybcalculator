@@ -95,8 +95,22 @@ class FirestoreService {
       final snap = await query.get();
       return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
     } catch (e, st) {
+      // Composite index may still be building — fall back to a simple query.
       debugPrint('FirestoreService.list error: $e\n$st');
-      rethrow;
+      try {
+        final snap = await _db
+            .collection(collectionPath)
+            .orderBy('createdAt', descending: true)
+            .limit(limit)
+            .get();
+        return snap.docs
+            .map((d) => {'id': d.id, ...d.data()})
+            .where((d) => d['status'] == status)
+            .toList();
+      } catch (e2, st2) {
+        debugPrint('FirestoreService.list fallback error: $e2\n$st2');
+        rethrow;
+      }
     }
   }
 
