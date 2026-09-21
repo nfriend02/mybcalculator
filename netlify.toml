@@ -21,9 +21,10 @@
   status = 200
 
 # Security headers (lightweight)
+# Allow embedding in HS Warehouse iframe (no X-Frame-Options DENY).
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'self' https://hswarehouse.netlify.app https://*.netlify.app"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
