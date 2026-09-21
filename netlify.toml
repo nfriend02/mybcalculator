@@ -7,12 +7,14 @@
   NODE_VERSION = "20"
   # Flutter is installed in netlify/build.sh
 
-# SPA fallback for Flutter web routing
+# API → Netlify Functions (must win over SPA fallback)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
+# SPA fallback for Flutter web routing
 [[redirects]]
   from = "/*"
   to = "/index.html"

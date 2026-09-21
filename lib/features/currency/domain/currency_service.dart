@@ -36,28 +36,22 @@ class CurrencyService {
   }
 
   Future<Map<String, double>> _rates() async {
-    final key = AppConfig.exchangeRateApiKey;
-    final shouldTryLive =
-        key != null && key.isNotEmpty && !key.startsWith('your_');
-
-    if (shouldTryLive) {
-      try {
-        final uri = Uri.parse('${AppConfig.apiPrefix}/exchange');
-        final res = await _client.get(uri);
-        if (res.statusCode == 200) {
-          final data = jsonDecode(res.body) as Map<String, dynamic>;
-          final raw = data['rates'];
-          if (raw is Map) {
-            final parsed = <String, double>{};
-            raw.forEach((k, v) {
-              if (v is num) parsed[k.toString().toUpperCase()] = v.toDouble();
-            });
-            if (parsed.isNotEmpty) return parsed;
-          }
+    try {
+      final uri = Uri.base.replace(path: '${AppConfig.apiPrefix}/exchange');
+      final res = await _client.get(uri);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final raw = data['rates'];
+        if (raw is Map) {
+          final parsed = <String, double>{};
+          raw.forEach((k, v) {
+            if (v is num) parsed[k.toString().toUpperCase()] = v.toDouble();
+          });
+          if (parsed.isNotEmpty) return parsed;
         }
-      } catch (_) {
-        // fall through to demo
       }
+    } catch (_) {
+      // fall through to demo
     }
 
     return demoToKrw;

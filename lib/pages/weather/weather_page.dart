@@ -13,7 +13,7 @@ class WeatherPage extends StatefulWidget {
 }
 
 class _WeatherPageState extends State<WeatherPage> {
-  final _city = TextEditingController(text: '요코하마');
+  final _city = TextEditingController(text: '서울');
   final _service = WeatherService();
   WeatherSnapshot? _snap;
   bool _loading = false;
@@ -41,7 +41,7 @@ class _WeatherPageState extends State<WeatherPage> {
         Text('날씨 조회', style: GoogleFonts.fredoka(fontSize: 28)),
         const SizedBox(height: 8),
         Text(
-          '예: "지금 요코하마 날씨는?"',
+          '예: 서울, 요코하마, Tokyo',
           style: GoogleFonts.nunito(
             color: AppTheme.ink.withValues(alpha: 0.5),
           ),

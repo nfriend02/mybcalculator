@@ -18,6 +18,10 @@ class ApiClient {
     final withPrefix = normalized.startsWith(AppConfig.apiPrefix)
         ? normalized
         : '${AppConfig.apiPrefix}$normalized';
+    // package:http requires an absolute URI — resolve against the page origin on web.
+    if (_baseUrl.isEmpty) {
+      return Uri.base.replace(path: withPrefix, queryParameters: query);
+    }
     return Uri.parse('$_baseUrl$withPrefix').replace(queryParameters: query);
   }
 
