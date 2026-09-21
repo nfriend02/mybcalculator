@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../features/unit_converter/domain/unit_converter.dart';
+import '../../shared/ui/widgets/feature_scaffold.dart';
 
 class UnitConverterPage extends StatefulWidget {
   const UnitConverterPage({super.key});
@@ -38,54 +39,74 @@ class _UnitConverterPageState extends State<UnitConverterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Text('단위 변환', style: GoogleFonts.fredoka(fontSize: 28)),
-        const SizedBox(height: 16),
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(value: 'length', label: Text('길이'), icon: Icon(Icons.straighten)),
-            ButtonSegment(value: 'weight', label: Text('무게'), icon: Icon(Icons.scale)),
-          ],
-          selected: {_mode},
-          onSelectionChanged: (s) {
-            setState(() {
-              _mode = s.first;
-              final u = _units;
-              _from = u.first;
-              _to = u.length > 1 ? u[1] : u.first;
-            });
-          },
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _value,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: '값',
-            filled: true,
-            fillColor: AppTheme.lavender.withValues(alpha: 0.4),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+    return FeatureScaffold(
+      title: '단위 변환',
+      subtitle: '길이·무게를 가볍게 바꿔 보세요',
+      emoji: '📏',
+      accent: AppTheme.lavender,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
+                value: 'length',
+                label: Text('길이'),
+                icon: Icon(Icons.straighten),
+              ),
+              ButtonSegment(
+                value: 'weight',
+                label: Text('무게'),
+                icon: Icon(Icons.scale),
+              ),
+            ],
+            selected: {_mode},
+            onSelectionChanged: (s) {
+              setState(() {
+                _mode = s.first;
+                final u = _units;
+                _from = u.first;
+                _to = u.length > 1 ? u[1] : u.first;
+              });
+            },
           ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _unitDropdown(true)),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(Icons.arrow_forward_rounded),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _value,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: '값',
+              filled: true,
+              fillColor: AppTheme.lavender.withValues(alpha: 0.4),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            Expanded(child: _unitDropdown(false)),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _unitDropdown(true)),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.arrow_forward_rounded),
+              ),
+              Expanded(child: _unitDropdown(false)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: _convert, child: const Text('변환')),
+          if (_out != null) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(_out!, style: GoogleFonts.fredoka(fontSize: 22)),
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        FilledButton(onPressed: _convert, child: const Text('변환')),
-        if (_out != null) ...[
-          const SizedBox(height: 20),
-          Text(_out!, style: GoogleFonts.fredoka(fontSize: 22)),
         ],
-      ],
+      ),
     );
   }
 

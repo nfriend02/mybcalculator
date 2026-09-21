@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../shared/config/app_config.dart';
+import '../../shared/ui/layout/app_shell.dart';
 import '../../shared/ui/widgets/fun_feature_button.dart';
 
 class HomePage extends StatelessWidget {
@@ -15,48 +16,66 @@ class HomePage extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppConfig.title,
-                style: GoogleFonts.fredoka(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w700,
-                  height: 1.05,
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 450.ms)
-                  .scale(
-                    begin: const Offset(0.96, 0.96),
-                    end: const Offset(1, 1),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.mint.withValues(alpha: 0.9),
+                  AppTheme.sky.withValues(alpha: 0.55),
+                  AppTheme.lavender.withValues(alpha: 0.5),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppConfig.title,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w700,
+                    height: 1.05,
                   ),
-              const SizedBox(height: 8),
-              Text(
-                AppConfig.description,
-                style: GoogleFonts.nunito(
-                  fontSize: 16,
-                  color: AppTheme.ink.withValues(alpha: 0.65),
+                )
+                    .animate()
+                    .fadeIn(duration: 450.ms)
+                    .scale(
+                      begin: const Offset(0.96, 0.96),
+                      end: const Offset(1, 1),
+                    ),
+                const SizedBox(height: 8),
+                Text(
+                  AppConfig.description,
+                  style: GoogleFonts.nunito(
+                    fontSize: 15,
+                    color: AppTheme.ink.withValues(alpha: 0.7),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'by ${AppConfig.author}',
-                style: GoogleFonts.nunito(
-                  fontSize: 13,
-                  color: AppTheme.ink.withValues(alpha: 0.4),
+                const SizedBox(height: 8),
+                Text(
+                  'by ${AppConfig.author}',
+                  style: GoogleFonts.nunito(
+                    fontSize: 13,
+                    color: AppTheme.ink.withValues(alpha: 0.45),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                '무엇을 도와드릴까요?',
-                style: GoogleFonts.fredoka(fontSize: 22),
-              ),
-              const SizedBox(height: 16),
-            ],
+              ],
+            ),
           ),
         ),
+        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        SliverToBoxAdapter(
+          child: Text(
+            '탭으로 바로 이동',
+            style: GoogleFonts.fredoka(fontSize: 22),
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
         SliverGrid(
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 180,
@@ -65,54 +84,13 @@ class HomePage extends StatelessWidget {
             childAspectRatio: 1.05,
           ),
           delegate: SliverChildListDelegate([
-            FunFeatureButton(
-              label: '계산기',
-              emoji: '🧮',
-              color: AppTheme.peach,
-              onTap: () => context.go('/calculator'),
-            ),
-            FunFeatureButton(
-              label: '환율',
-              emoji: '💱',
-              color: AppTheme.butter,
-              onTap: () => context.go('/currency'),
-            ),
-            FunFeatureButton(
-              label: '날씨',
-              emoji: '🌤️',
-              color: AppTheme.sky,
-              onTap: () => context.go('/weather'),
-            ),
-            FunFeatureButton(
-              label: '단위 변환',
-              emoji: '📏',
-              color: AppTheme.lavender,
-              onTap: () => context.go('/units'),
-            ),
-            FunFeatureButton(
-              label: '알람/타이머',
-              emoji: '⏰',
-              color: AppTheme.coral.withValues(alpha: 0.7),
-              onTap: () => context.go('/alarm'),
-            ),
-            FunFeatureButton(
-              label: '일정',
-              emoji: '📅',
-              color: AppTheme.mint,
-              onTap: () => context.go('/schedule'),
-            ),
-            FunFeatureButton(
-              label: '지출',
-              emoji: '💸',
-              color: AppTheme.peach,
-              onTap: () => context.go('/expense'),
-            ),
-            FunFeatureButton(
-              label: '업로드',
-              emoji: '☁️',
-              color: AppTheme.sky,
-              onTap: () => context.go('/upload'),
-            ),
+            for (final item in kNavItems.where((e) => e.path != '/'))
+              FunFeatureButton(
+                label: item.label,
+                emoji: item.emoji,
+                color: item.accent,
+                onTap: () => context.go(item.path),
+              ),
           ]),
         ),
       ],

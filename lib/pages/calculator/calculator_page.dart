@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../app/theme/app_theme.dart';
 import '../../features/calculator/model/calculator_controller.dart';
 import '../../features/calculator/ui/calculator_pad.dart';
+import '../../shared/ui/widgets/feature_scaffold.dart';
 
-/// Calculator screen — pad first; natural language via text field (no mic plugin).
 class CalculatorPage extends StatefulWidget {
   const CalculatorPage({super.key});
 
@@ -32,42 +32,48 @@ class _CalculatorPageState extends State<CalculatorPage> {
   Widget build(BuildContext context) {
     final controller = context.watch<CalculatorController>();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 820;
-        final pad = ColoredBox(
-          color: Colors.transparent,
-          child: CalculatorPad(controller: controller),
-        );
+    return FeatureScaffold(
+      title: '스마트 계산기',
+      subtitle: '버튼을 누르거나 문장으로 계산해 보세요',
+      emoji: '🧮',
+      accent: AppTheme.peach,
+      scrollable: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 820;
+          final pad = CalculatorPad(controller: controller);
+          final side = _SidePanel(
+            controller: controller,
+            nlController: _nl,
+            onSubmit: () => _runNaturalLanguage(controller),
+          );
 
-        final side = _SidePanel(
-          controller: controller,
-          nlController: _nl,
-          onSubmit: () => _runNaturalLanguage(controller),
-        );
+          if (wide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: 3, child: pad),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: SingleChildScrollView(child: side),
+                ),
+              ],
+            );
+          }
 
-        if (wide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          return ListView(
             children: [
-              Expanded(flex: 3, child: pad),
-              const SizedBox(width: 16),
-              Expanded(flex: 2, child: side),
+              SizedBox(
+                height: (constraints.maxHeight * 0.58).clamp(340.0, 520.0),
+                child: pad,
+              ),
+              const SizedBox(height: 12),
+              side,
             ],
           );
-        }
-
-        return ListView(
-          children: [
-            SizedBox(
-              height: (constraints.maxHeight * 0.62).clamp(360.0, 560.0),
-              child: pad,
-            ),
-            const SizedBox(height: 12),
-            side,
-          ],
-        );
-      },
+        },
+      ),
     );
   }
 }
@@ -90,8 +96,9 @@ class _SidePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.82),
+        color: Colors.white.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.peach.withValues(alpha: 0.45)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -109,7 +116,7 @@ class _SidePanel extends StatelessWidget {
             decoration: InputDecoration(
               hintText: '예: 삼십 나누기 삼은?',
               filled: true,
-              fillColor: AppTheme.sky.withValues(alpha: 0.35),
+              fillColor: AppTheme.peach.withValues(alpha: 0.25),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
@@ -138,14 +145,14 @@ class _SidePanel extends StatelessWidget {
             ...history.take(8).map((item) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  dense: true,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                child: Material(
+                  color: AppTheme.mint.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                  child: ListTile(
+                    dense: true,
+                    title: Text(item.expression, maxLines: 1),
+                    subtitle: Text('= ${item.result}'),
                   ),
-                  tileColor: AppTheme.mint.withValues(alpha: 0.35),
-                  title: Text(item.expression, maxLines: 1),
-                  subtitle: Text('= ${item.result}'),
                 ),
               );
             }),

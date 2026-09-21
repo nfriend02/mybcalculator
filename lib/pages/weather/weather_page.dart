@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/app_theme.dart';
 import '../../entities/weather/weather_snapshot.dart';
 import '../../features/weather/domain/weather_service.dart';
+import '../../shared/ui/widgets/feature_scaffold.dart';
 
 class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
@@ -36,67 +37,67 @@ class _WeatherPageState extends State<WeatherPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Text('날씨 조회', style: GoogleFonts.fredoka(fontSize: 28)),
-        const SizedBox(height: 8),
-        Text(
-          '예: 서울, 요코하마, Tokyo',
-          style: GoogleFonts.nunito(
-            color: AppTheme.ink.withValues(alpha: 0.5),
+    return FeatureScaffold(
+      title: '날씨 조회',
+      subtitle: '서울·요코하마·Tokyo 등 도시 이름으로',
+      emoji: '🌤️',
+      accent: AppTheme.sky,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _city,
+            decoration: InputDecoration(
+              labelText: '도시',
+              filled: true,
+              fillColor: AppTheme.sky.withValues(alpha: 0.45),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _city,
-          decoration: InputDecoration(
-            labelText: '도시',
-            filled: true,
-            fillColor: AppTheme.sky.withValues(alpha: 0.45),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _loading ? null : _fetch,
+            child: Text(_loading ? '조회 중…' : '날씨 보기'),
           ),
-        ),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: _loading ? null : _fetch,
-          child: Text(_loading ? '조회 중…' : '날씨 보기'),
-        ),
-        if (_snap != null) ...[
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.sky.withValues(alpha: 0.9),
-                  AppTheme.lavender.withValues(alpha: 0.7),
+          if (_snap != null) ...[
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.sky.withValues(alpha: 0.95),
+                    AppTheme.lavender.withValues(alpha: 0.75),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                children: [
+                  const Text('🌤️', style: TextStyle(fontSize: 48)),
+                  Text(
+                    _snap!.city,
+                    style: GoogleFonts.fredoka(fontSize: 26),
+                  ),
+                  Text(
+                    '${_snap!.temperatureC.toStringAsFixed(1)}°C',
+                    style: GoogleFonts.fredoka(fontSize: 40),
+                  ),
+                  Text(
+                    _snap!.description,
+                    style: GoogleFonts.nunito(fontSize: 16),
+                  ),
+                  if (_snap!.humidity != null)
+                    Text(
+                      '습도 ${_snap!.humidity}%',
+                      style: GoogleFonts.nunito(),
+                    ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(24),
             ),
-            child: Column(
-              children: [
-                Text('🌤️', style: const TextStyle(fontSize: 48)),
-                Text(
-                  _snap!.city,
-                  style: GoogleFonts.fredoka(fontSize: 26),
-                ),
-                Text(
-                  '${_snap!.temperatureC.toStringAsFixed(1)}°C',
-                  style: GoogleFonts.fredoka(fontSize: 40),
-                ),
-                Text(
-                  _snap!.description,
-                  style: GoogleFonts.nunito(fontSize: 16),
-                ),
-                if (_snap!.humidity != null)
-                  Text('습도 ${_snap!.humidity}%',
-                      style: GoogleFonts.nunito()),
-              ],
-            ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

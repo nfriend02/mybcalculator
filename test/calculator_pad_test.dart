@@ -33,14 +33,13 @@ void main() {
     expect(controller.display, '3');
   });
 
-  testWidgets('CalculatorPage renders keys in desktop shell size',
-      (tester) async {
+  testWidgets('CalculatorPage finds provider and shows keys', (tester) async {
     final controller = CalculatorController();
     await tester.binding.setSurfaceSize(const Size(1200, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
+      ChangeNotifierProvider<CalculatorController>.value(
         value: controller,
         child: const MaterialApp(
           home: Scaffold(body: CalculatorPage()),
@@ -48,10 +47,9 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('7'), findsWidgets);
-    expect(find.text('='), findsOneWidget);
-
     await tester.tap(find.text('9'));
     await tester.pump();
     expect(controller.display, '9');

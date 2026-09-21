@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
 
 import '../features/alarm/model/alarm_timer_controller.dart';
 import '../features/calculator/model/calculator_controller.dart';
@@ -26,16 +27,20 @@ class AppBootstrap {
   FirestoreService? get firestore =>
       firebaseReady ? FirestoreService() : null;
 
-  List<ChangeNotifierProvider> providers() => [
-        ChangeNotifierProvider(
+  /// Explicit type args — bare `ChangeNotifierProvider` erases T and breaks
+  /// `context.watch<CalculatorController>()` (blank calculator screen).
+  List<SingleChildWidget> providers() => [
+        ChangeNotifierProvider<CalculatorController>(
           create: (_) =>
               CalculatorController(firestore: firestore)..loadHistory(),
         ),
-        ChangeNotifierProvider(create: (_) => AlarmTimerController()),
-        ChangeNotifierProvider(
+        ChangeNotifierProvider<AlarmTimerController>(
+          create: (_) => AlarmTimerController(),
+        ),
+        ChangeNotifierProvider<ScheduleController>(
           create: (_) => ScheduleController(firestore: firestore)..load(),
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProvider<ExpenseController>(
           create: (_) => ExpenseController(firestore: firestore)..load(),
         ),
       ];
@@ -45,7 +50,10 @@ class AppBootstrap {
       initialLocation: '/',
       routes: [
         ShellRoute(
-          builder: (context, state, child) => AppShell(child: child),
+          builder: (context, state, child) => AppShell(
+            location: state.uri.path,
+            child: child,
+          ),
           routes: [
             GoRoute(path: '/', builder: (_, _) => const HomePage()),
             GoRoute(

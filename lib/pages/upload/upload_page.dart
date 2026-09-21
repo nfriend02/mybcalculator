@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../shared/config/app_config.dart';
 import '../../shared/services/firestore_service.dart';
 import '../../shared/services/storage_service.dart';
+import '../../shared/ui/widgets/feature_scaffold.dart';
 import '../../shared/ui/widgets/paged_list_view.dart';
 
 /// Upload example page — portfolio checklist + Firebase Storage/Firestore.
@@ -111,61 +112,70 @@ class _UploadPageState extends State<UploadPage> {
   Widget build(BuildContext context) {
     final meta = AppConfig.uploadChecklistMeta();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          '업로드 · 포트폴리오 체크리스트',
-          style: GoogleFonts.fredoka(fontSize: 26),
-        ),
-        const SizedBox(height: 12),
-        _ChecklistCard(meta: meta, firebaseReady: widget.firebaseReady),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: _busy ? null : _pickAndUpload,
-          icon: const Icon(Icons.cloud_upload_rounded),
-          label: Text(_busy ? '업로드 중…' : '파일 선택 후 업로드'),
-        ),
-        if (_status != null) ...[
-          const SizedBox(height: 8),
+    return FeatureScaffold(
+      title: '업로드',
+      subtitle: '포트폴리오 체크리스트와 파일 업로드',
+      emoji: '☁️',
+      accent: AppTheme.sky,
+      scrollable: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ChecklistCard(meta: meta, firebaseReady: widget.firebaseReady),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _busy ? null : _pickAndUpload,
+            icon: const Icon(Icons.cloud_upload_rounded),
+            label: Text(_busy ? '업로드 중…' : '파일 선택 후 업로드'),
+          ),
+          if (_status != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _status!,
+              style: GoogleFonts.nunito(
+                color: AppTheme.ink.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
           Text(
-            _status!,
-            style: GoogleFonts.nunito(
-              color: AppTheme.ink.withValues(alpha: 0.6),
+            '업로드 목록 (페이지당 10개)',
+            style: GoogleFonts.fredoka(fontSize: 18),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Material(
+              color: Colors.white.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(18),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: PagedListView<_UploadRow>(
+                  items: _uploads,
+                  emptyMessage: '아직 업로드한 파일이 없어요',
+                  itemBuilder: (context, item, index) {
+                    return ListTile(
+                      tileColor: Colors.white.withValues(alpha: 0.9),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: AppTheme.sky,
+                        child: Text('${index + 1}'),
+                      ),
+                      title: Text(item.name),
+                      subtitle: Text(
+                        '${item.size} bytes\n${item.url}',
+                        maxLines: 2,
+                      ),
+                      isThreeLine: true,
+                    );
+                  },
+                ),
+              ),
             ),
           ),
         ],
-        const SizedBox(height: 16),
-        Text(
-          '업로드 목록 (페이지당 10개)',
-          style: GoogleFonts.fredoka(fontSize: 18),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: PagedListView<_UploadRow>(
-            items: _uploads,
-            emptyMessage: '아직 업로드한 파일이 없어요',
-            itemBuilder: (context, item, index) {
-              return ListTile(
-                tileColor: Colors.white.withValues(alpha: 0.85),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                leading: CircleAvatar(
-                  backgroundColor: AppTheme.sky,
-                  child: Text('${index + 1}'),
-                ),
-                title: Text(item.name),
-                subtitle: Text(
-                  '${item.size} bytes\n${item.url}',
-                  maxLines: 2,
-                ),
-                isThreeLine: true,
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
