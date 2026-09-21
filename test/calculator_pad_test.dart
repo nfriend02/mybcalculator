@@ -4,20 +4,18 @@ import 'package:provider/provider.dart';
 
 import 'package:mybcalculator/features/calculator/model/calculator_controller.dart';
 import 'package:mybcalculator/features/calculator/ui/calculator_pad.dart';
+import 'package:mybcalculator/pages/calculator/calculator_page.dart';
 
 void main() {
   testWidgets('CalculatorPad digits and equals update display', (tester) async {
     final controller = CalculatorController();
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: controller,
-        child: const MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 400,
-              height: 640,
-              child: CalculatorPad(),
-            ),
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 640,
+            child: CalculatorPad(controller: controller),
           ),
         ),
       ),
@@ -33,5 +31,29 @@ void main() {
     await tester.pump();
 
     expect(controller.display, '3');
+  });
+
+  testWidgets('CalculatorPage renders keys in desktop shell size',
+      (tester) async {
+    final controller = CalculatorController();
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: controller,
+        child: const MaterialApp(
+          home: Scaffold(body: CalculatorPage()),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('7'), findsWidgets);
+    expect(find.text('='), findsOneWidget);
+
+    await tester.tap(find.text('9'));
+    await tester.pump();
+    expect(controller.display, '9');
   });
 }

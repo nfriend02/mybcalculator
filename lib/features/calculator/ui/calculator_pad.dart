@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../model/calculator_controller.dart';
 
 class CalculatorPad extends StatelessWidget {
-  const CalculatorPad({super.key});
+  const CalculatorPad({super.key, required this.controller});
+
+  final CalculatorController controller;
 
   static const _rows = <List<String>>[
     ['C', 'back', '(', ')'],
@@ -28,74 +28,88 @@ class CalculatorPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.watch<CalculatorController>();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.peach.withValues(alpha: 0.6)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                controller.expression.isEmpty ? ' ' : controller.expression,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.nunito(
-                  fontSize: 14,
-                  color: AppTheme.ink.withValues(alpha: 0.45),
+    // ListenableBuilder avoids Provider lookup failures inside nested builds.
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppTheme.peach.withValues(alpha: 0.7),
                 ),
-              ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Text(
-                  controller.display,
-                  style: GoogleFonts.fredoka(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w600,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.peach.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Column(
-            children: [
-              for (final row in _rows)
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final token in row)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: _CalcKey(
-                              label: _label(token),
-                              token: token,
-                              onTap: () => controller.input(
-                                token == 'back' ? '⌫' : token,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    controller.expression.isEmpty ? ' ' : controller.expression,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.ink.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      controller.display,
+                      style: const TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Column(
+                children: [
+                  for (final row in _rows)
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final token in row)
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: _CalcKey(
+                                  label: _label(token),
+                                  token: token,
+                                  onTap: () => controller.input(
+                                    token == 'back' ? '⌫' : token,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -121,17 +135,17 @@ class _CalcKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: _bg.withValues(alpha: 0.9),
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
+      color: _bg,
+      elevation: 1,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.nunito(
-              fontSize: 22,
+            style: TextStyle(
+              fontSize: 24,
               fontWeight: FontWeight.w800,
               color: token == '=' ? Colors.white : AppTheme.ink,
             ),

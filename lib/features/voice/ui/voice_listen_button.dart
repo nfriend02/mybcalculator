@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../domain/voice_recognition_service.dart';
@@ -31,7 +30,7 @@ class _VoiceListenButtonState extends State<VoiceListenButton> {
     if (raw == null || raw.isEmpty) {
       setState(() {
         _listening = false;
-        _hint = '인식되지 않았어요. 다시 시도!';
+        _hint = '음성 인식이 지원되지 않거나 인식되지 않았어요';
       });
       return;
     }
@@ -60,7 +59,7 @@ class _VoiceListenButtonState extends State<VoiceListenButton> {
         const SizedBox(height: 8),
         Text(
           _hint,
-          style: GoogleFonts.nunito(
+          style: TextStyle(
             fontSize: 13,
             color: AppTheme.ink.withValues(alpha: 0.55),
           ),
