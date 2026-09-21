@@ -298,7 +298,7 @@ class _FxSentencePanelState extends State<_FxSentencePanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '나의 AI 환율 계산가',
+            '나의 AI 환율 계산기',
             style: GoogleFonts.notoSansKr(
               fontSize: 22,
               fontWeight: FontWeight.w800,
