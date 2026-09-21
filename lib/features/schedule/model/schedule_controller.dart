@@ -17,6 +17,7 @@ class ScheduleController extends ChangeNotifier {
   bool _busy = false;
   String? _note;
   String? _lastError;
+  int _loadToken = 0;
 
   List<ScheduleItem> get items => List.unmodifiable(_items);
   bool get busy => _busy;
@@ -26,11 +27,18 @@ class ScheduleController extends ChangeNotifier {
   Future<void> load() async {
     final fs = _firestore;
     if (fs == null) return;
+    final token = ++_loadToken;
     try {
       final rows = await fs.list(collectionPath: 'schedules', limit: 50);
+      if (token != _loadToken) return;
+      final remote = rows.map(ScheduleItem.fromMap).toList();
+      final remoteIds = remote.map((e) => e.id).toSet();
+      final pendingLocal =
+          _items.where((e) => e.id.isNotEmpty && !remoteIds.contains(e.id));
       _items
         ..clear()
-        ..addAll(rows.map(ScheduleItem.fromMap));
+        ..addAll(pendingLocal)
+        ..addAll(remote);
       notifyListeners();
     } catch (e) {
       debugPrint('Schedule load: $e');
@@ -38,9 +46,13 @@ class ScheduleController extends ChangeNotifier {
   }
 
   Future<void> add(String title, DateTime when, {String note = ''}) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    // Invalidate in-flight load so it cannot wipe this optimistic insert.
+    _loadToken++;
     final item = ScheduleItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
+      id: '${DateTime.now().microsecondsSinceEpoch}_${_items.length}',
+      title: trimmed,
       when: when,
       note: note,
     );
@@ -167,36 +179,32 @@ class ScheduleController extends ChangeNotifier {
     }
   }
 
-  /// Returns null when there is no clear schedule signal — let Gemini handle.
+  /// Returns a schedule for any non-empty text (always local-first).
   static (String, DateTime)? _parseLocal(String text) {
-    final hasTimeSignal = RegExp(
-      r'내일|모레|오늘|오전|오후|아침|저녁|밤|\d{1,2}\s*시|am|pm',
-      caseSensitive: false,
-    ).hasMatch(text);
-    final hasIntent = RegExp(r'일정|회의|미팅|약속|스케줄|등록|추가').hasMatch(text);
-    if (!hasTimeSignal && !hasIntent) return null;
+    final raw = text.trim();
+    if (raw.isEmpty) return null;
 
     final now = DateTime.now();
     var when = now.add(const Duration(hours: 1));
-    var title = text;
+    var title = raw;
 
-    if (text.contains('내일')) {
+    if (raw.contains('내일')) {
       when = DateTime(now.year, now.month, now.day)
           .add(const Duration(days: 1, hours: 9));
-      title = text.replaceAll('내일', '').trim();
-    } else if (text.contains('모레')) {
+      title = raw.replaceAll('내일', '').trim();
+    } else if (raw.contains('모레')) {
       when = DateTime(now.year, now.month, now.day)
           .add(const Duration(days: 2, hours: 9));
-      title = text.replaceAll('모레', '').trim();
-    } else if (text.contains('오늘')) {
+      title = raw.replaceAll('모레', '').trim();
+    } else if (raw.contains('오늘')) {
       when = DateTime(now.year, now.month, now.day, now.hour + 1);
-      title = text.replaceAll('오늘', '').trim();
+      title = raw.replaceAll('오늘', '').trim();
     }
 
     final ampm = RegExp(
       r'(오전|오후|am|pm)?\s*(\d{1,2})\s*시\s*(\d{1,2})?\s*분?',
       caseSensitive: false,
-    ).firstMatch(text);
+    ).firstMatch(raw);
     if (ampm != null) {
       var hour = int.parse(ampm.group(2)!);
       final minute = int.tryParse(ampm.group(3) ?? '') ?? 0;
@@ -214,7 +222,7 @@ class ScheduleController extends ChangeNotifier {
         .replaceAll(RegExp(r'일정|추가|등록|잡아|넣어|해줘|해주세요|미팅|회의|약속'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-    if (title.isEmpty) title = text;
+    if (title.isEmpty) title = raw;
     return (title, when);
   }
 

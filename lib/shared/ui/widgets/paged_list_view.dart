@@ -12,12 +12,16 @@ class PagedListView<T> extends StatefulWidget {
     required this.itemBuilder,
     this.pageSize = PaginationRules.pageSize,
     this.emptyMessage = '아직 항목이 없어요',
+    this.shrinkWrap = false,
   });
 
   final List<T> items;
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
   final int pageSize;
   final String emptyMessage;
+
+  /// When true, sizes to children (for nesting inside a parent scroll view).
+  final bool shrinkWrap;
 
   @override
   State<PagedListView<T>> createState() => _PagedListViewState<T>();
@@ -41,7 +45,9 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
   @override
   void didUpdateWidget(covariant PagedListView<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_page >= _pageCount) {
+    if (widget.items.length != oldWidget.items.length) {
+      _page = 0;
+    } else if (_page >= _pageCount) {
       _page = _pageCount - 1;
     }
   }
@@ -49,32 +55,53 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
   @override
   Widget build(BuildContext context) {
     if (widget.items.isEmpty) {
-      return Center(
-        child: Text(
-          widget.emptyMessage,
-          style: GoogleFonts.nunito(color: AppTheme.ink.withValues(alpha: 0.5)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 28),
+        child: Center(
+          child: Text(
+            widget.emptyMessage,
+            style: GoogleFonts.nunito(color: AppTheme.ink.withValues(alpha: 0.5)),
+          ),
         ),
+      );
+    }
+
+    final list = ListView.separated(
+      shrinkWrap: widget.shrinkWrap,
+      physics: widget.shrinkWrap
+          ? const NeverScrollableScrollPhysics()
+          : null,
+      itemCount: _pageItems.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final globalIndex = _page * widget.pageSize + i;
+        return widget.itemBuilder(context, _pageItems[i], globalIndex);
+      },
+    );
+
+    final controls = _PageControls(
+      page: _page,
+      pageCount: _pageCount,
+      onChanged: (p) => setState(() => _page = p),
+    );
+
+    if (widget.shrinkWrap) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          list,
+          const SizedBox(height: 12),
+          controls,
+        ],
       );
     }
 
     return Column(
       children: [
-        Expanded(
-          child: ListView.separated(
-            itemCount: _pageItems.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, i) {
-              final globalIndex = _page * widget.pageSize + i;
-              return widget.itemBuilder(context, _pageItems[i], globalIndex);
-            },
-          ),
-        ),
+        Expanded(child: list),
         const SizedBox(height: 12),
-        _PageControls(
-          page: _page,
-          pageCount: _pageCount,
-          onChanged: (p) => setState(() => _page = p),
-        ),
+        controls,
       ],
     );
   }

@@ -18,6 +18,7 @@ class ExpenseController extends ChangeNotifier {
   bool _busy = false;
   String? _note;
   String? _lastError;
+  int _loadToken = 0;
 
   List<ExpenseRecord> get items => List.unmodifiable(_items);
   double get total => _items.fold(0, (s, e) => s + e.amount);
@@ -28,11 +29,18 @@ class ExpenseController extends ChangeNotifier {
   Future<void> load() async {
     final fs = _firestore;
     if (fs == null) return;
+    final token = ++_loadToken;
     try {
       final rows = await fs.list(collectionPath: 'expenses', limit: 50);
+      if (token != _loadToken) return;
+      final remote = rows.map(ExpenseRecord.fromMap).toList();
+      final remoteIds = remote.map((e) => e.id).toSet();
+      final pendingLocal =
+          _items.where((e) => e.id.isNotEmpty && !remoteIds.contains(e.id));
       _items
         ..clear()
-        ..addAll(rows.map(ExpenseRecord.fromMap));
+        ..addAll(pendingLocal)
+        ..addAll(remote);
       notifyListeners();
     } catch (e) {
       debugPrint('Expense load: $e');
@@ -44,9 +52,12 @@ class ExpenseController extends ChangeNotifier {
     double amount, {
     String category = 'general',
   }) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty || amount <= 0) return;
+    _loadToken++;
     final item = ExpenseRecord(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
+      id: '${DateTime.now().microsecondsSinceEpoch}_${_items.length}',
+      title: trimmed,
       amount: amount,
       category: category,
       createdAt: DateTime.now(),

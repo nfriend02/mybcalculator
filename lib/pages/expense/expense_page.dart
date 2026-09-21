@@ -30,6 +30,11 @@ class _ExpensePageState extends State<ExpensePage> {
     super.dispose();
   }
 
+  double? _parseAmount(String raw) {
+    final cleaned = raw.trim().replaceAll(',', '').replaceAll('원', '');
+    return double.tryParse(cleaned);
+  }
+
   Future<void> _applyNl() async {
     final text = _nl.text.trim();
     if (text.isEmpty) return;
@@ -44,6 +49,23 @@ class _ExpensePageState extends State<ExpensePage> {
         _error = controller.lastError ?? '지출을 기록하지 못했어요.';
       });
     }
+  }
+
+  Future<void> _addManual() async {
+    final title = _title.text.trim();
+    final amount = _parseAmount(_amount.text) ?? 0;
+    if (title.isEmpty || amount <= 0) {
+      setState(() {
+        _error = '항목과 금액을 입력해 주세요. 예: 커피 / 4500';
+      });
+      return;
+    }
+    final controller = context.read<ExpenseController>();
+    await controller.add(title, amount);
+    if (!mounted) return;
+    _title.clear();
+    _amount.clear();
+    setState(() => _error = null);
   }
 
   Future<void> _deleteSelected() async {
@@ -68,7 +90,7 @@ class _ExpensePageState extends State<ExpensePage> {
       emoji: '💸',
       accent: const Color(0xFFD4926A),
       variant: FeatureVariant.stripe,
-      scrollable: false,
+      scrollable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -78,7 +100,7 @@ class _ExpensePageState extends State<ExpensePage> {
             busy: controller.busy,
             submitLabel: '지출 기록',
             busyLabel: '기록 중…',
-            minLines: 2,
+            minLines: 1,
             maxLines: 3,
             onSubmit: _applyNl,
             onVoiceSubmit: (t) async {
@@ -151,87 +173,98 @@ class _ExpensePageState extends State<ExpensePage> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
+                  onSubmitted: (_) => _addManual(),
                 ),
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: () async {
-                  final a = double.tryParse(_amount.text) ?? 0;
-                  if (_title.text.trim().isEmpty || a <= 0) return;
-                  await controller.add(_title.text.trim(), a);
-                  _title.clear();
-                  _amount.clear();
-                },
+                onPressed: _addManual,
                 child: const Text('기록'),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonalIcon(
-              onPressed: selectedCount == 0 ? null : _deleteSelected,
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: Text(
-                selectedCount == 0
-                    ? '기록 삭제'
-                    : '기록 삭제 ($selectedCount)',
+          Row(
+            children: [
+              Text(
+                '기록 ${controller.items.length}개',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textSecondary,
+                ),
               ),
-            ),
+              const Spacer(),
+              FilledButton.tonalIcon(
+                onPressed: selectedCount == 0 ? null : _deleteSelected,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: Text(
+                  selectedCount == 0
+                      ? '기록 삭제'
+                      : '기록 삭제 ($selectedCount)',
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: Material(
-              color: AppTheme.surfaceElevated,
-              borderRadius: BorderRadius.circular(18),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: PagedListView(
-                  items: controller.items,
-                  emptyMessage: '지출 내역이 없어요',
-                  itemBuilder: (context, item, index) {
-                    final checked = _selected.contains(item.id);
-                    return ListTile(
-                      tileColor: AppTheme.panel,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+          Material(
+            color: AppTheme.surfaceElevated,
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: PagedListView(
+                items: controller.items,
+                shrinkWrap: true,
+                emptyMessage: '지출 내역이 없어요',
+                itemBuilder: (context, item, index) {
+                  final checked = _selected.contains(item.id);
+                  return ListTile(
+                    tileColor: AppTheme.panel,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          const Color(0xFFD4926A).withValues(alpha: 0.35),
+                      child: Text('${index + 1}'),
+                    ),
+                    title: Text(
+                      item.title,
+                      style: GoogleFonts.notoSansKr(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
                       ),
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            const Color(0xFFD4926A).withValues(alpha: 0.35),
-                        child: Text('${index + 1}'),
+                    ),
+                    subtitle: Text(
+                      '₩${item.amount.toStringAsFixed(0)}',
+                      style: GoogleFonts.notoSansKr(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textSecondary,
                       ),
-                      title: Text(item.title),
-                      subtitle: Text(
-                        '₩${item.amount.toStringAsFixed(0)}',
-                        style: GoogleFonts.notoSansKr(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      trailing: Checkbox(
-                        value: checked,
-                        onChanged: (v) {
-                          setState(() {
-                            if (v == true) {
-                              _selected.add(item.id);
-                            } else {
-                              _selected.remove(item.id);
-                            }
-                          });
-                        },
-                      ),
-                      onTap: () {
+                    ),
+                    trailing: Checkbox(
+                      value: checked,
+                      onChanged: (v) {
                         setState(() {
-                          if (checked) {
-                            _selected.remove(item.id);
-                          } else {
+                          if (v == true) {
                             _selected.add(item.id);
+                          } else {
+                            _selected.remove(item.id);
                           }
                         });
                       },
-                    );
-                  },
-                ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        if (checked) {
+                          _selected.remove(item.id);
+                        } else {
+                          _selected.add(item.id);
+                        }
+                      });
+                    },
+                  );
+                },
               ),
             ),
           ),

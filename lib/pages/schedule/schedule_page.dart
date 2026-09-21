@@ -45,6 +45,19 @@ class _SchedulePageState extends State<SchedulePage> {
     }
   }
 
+  Future<void> _addManual() async {
+    final title = _title.text.trim();
+    if (title.isEmpty) return;
+    final controller = context.read<ScheduleController>();
+    await controller.add(
+      title,
+      DateTime.now().add(const Duration(hours: 1)),
+    );
+    if (!mounted) return;
+    _title.clear();
+    setState(() => _error = null);
+  }
+
   Future<void> _deleteSelected() async {
     if (_selected.isEmpty) return;
     final controller = context.read<ScheduleController>();
@@ -68,7 +81,7 @@ class _SchedulePageState extends State<SchedulePage> {
       emoji: '📅',
       accent: const Color(0xFFA8967A),
       variant: FeatureVariant.soft,
-      scrollable: false,
+      scrollable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -78,7 +91,7 @@ class _SchedulePageState extends State<SchedulePage> {
             busy: controller.busy,
             submitLabel: '일정 추가',
             busyLabel: '추가 중…',
-            minLines: 2,
+            minLines: 1,
             maxLines: 3,
             onSubmit: _applyNl,
             onVoiceSubmit: (t) async {
@@ -135,83 +148,97 @@ class _SchedulePageState extends State<SchedulePage> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
+                  onSubmitted: (_) => _addManual(),
                 ),
               ),
               const SizedBox(width: 8),
               FilledButton(
-                onPressed: () async {
-                  if (_title.text.trim().isEmpty) return;
-                  await controller.add(
-                    _title.text.trim(),
-                    DateTime.now().add(const Duration(hours: 1)),
-                  );
-                  _title.clear();
-                },
+                onPressed: _addManual,
                 child: const Text('추가'),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonalIcon(
-              onPressed: selectedCount == 0 ? null : _deleteSelected,
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: Text(
-                selectedCount == 0
-                    ? '기록 삭제'
-                    : '기록 삭제 ($selectedCount)',
+          Row(
+            children: [
+              Text(
+                '기록 ${controller.items.length}개',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textSecondary,
+                ),
               ),
-            ),
+              const Spacer(),
+              FilledButton.tonalIcon(
+                onPressed: selectedCount == 0 ? null : _deleteSelected,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: Text(
+                  selectedCount == 0
+                      ? '기록 삭제'
+                      : '기록 삭제 ($selectedCount)',
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: Material(
-              color: AppTheme.surfaceElevated,
-              borderRadius: BorderRadius.circular(18),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: PagedListView(
-                  items: controller.items,
-                  emptyMessage: '일정이 비어 있어요',
-                  itemBuilder: (context, item, index) {
-                    final checked = _selected.contains(item.id);
-                    return ListTile(
-                      tileColor: AppTheme.panel,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+          Material(
+            color: AppTheme.surfaceElevated,
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: PagedListView(
+                items: controller.items,
+                shrinkWrap: true,
+                emptyMessage: '일정이 비어 있어요',
+                itemBuilder: (context, item, index) {
+                  final checked = _selected.contains(item.id);
+                  return ListTile(
+                    tileColor: AppTheme.panel,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          const Color(0xFFA8967A).withValues(alpha: 0.35),
+                      child: Text('${index + 1}'),
+                    ),
+                    title: Text(
+                      item.title,
+                      style: GoogleFonts.notoSansKr(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
                       ),
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            const Color(0xFFA8967A).withValues(alpha: 0.35),
-                        child: Text('${index + 1}'),
+                    ),
+                    subtitle: Text(
+                      fmt.format(item.when),
+                      style: GoogleFonts.notoSansKr(
+                        color: AppTheme.textSecondary,
                       ),
-                      title: Text(item.title),
-                      subtitle: Text(fmt.format(item.when)),
-                      trailing: Checkbox(
-                        value: checked,
-                        onChanged: (v) {
-                          setState(() {
-                            if (v == true) {
-                              _selected.add(item.id);
-                            } else {
-                              _selected.remove(item.id);
-                            }
-                          });
-                        },
-                      ),
-                      onTap: () {
+                    ),
+                    trailing: Checkbox(
+                      value: checked,
+                      onChanged: (v) {
                         setState(() {
-                          if (checked) {
-                            _selected.remove(item.id);
-                          } else {
+                          if (v == true) {
                             _selected.add(item.id);
+                          } else {
+                            _selected.remove(item.id);
                           }
                         });
                       },
-                    );
-                  },
-                ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        if (checked) {
+                          _selected.remove(item.id);
+                        } else {
+                          _selected.add(item.id);
+                        }
+                      });
+                    },
+                  );
+                },
               ),
             ),
           ),
