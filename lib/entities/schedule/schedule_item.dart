@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ScheduleItem {
   const ScheduleItem({
     required this.id,
@@ -24,9 +26,21 @@ class ScheduleItem {
     return ScheduleItem(
       id: map['id'] as String? ?? '',
       title: map['title'] as String? ?? '',
-      when: DateTime.tryParse(map['when'] as String? ?? '') ?? DateTime.now(),
+      when: parseFirestoreDate(map['when']) ?? DateTime.now(),
       note: map['note'] as String? ?? '',
       status: map['status'] as String? ?? 'active',
     );
+  }
+}
+
+DateTime? parseFirestoreDate(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is Timestamp) return value.toDate();
+  if (value is String) return DateTime.tryParse(value);
+  try {
+    return (value as dynamic).toDate() as DateTime;
+  } catch (_) {
+    return null;
   }
 }

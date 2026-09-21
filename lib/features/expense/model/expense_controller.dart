@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../entities/expense/expense_record.dart';
 import '../../../shared/services/firestore_service.dart';
@@ -14,6 +15,7 @@ class ExpenseController extends ChangeNotifier {
 
   final FirestoreService? _firestore;
   final GeminiCalcService _gemini;
+  final _uuid = const Uuid();
   final List<ExpenseRecord> _items = [];
   bool _busy = false;
   String? _note;
@@ -56,7 +58,7 @@ class ExpenseController extends ChangeNotifier {
     if (trimmed.isEmpty || amount <= 0) return;
     _loadToken++;
     final item = ExpenseRecord(
-      id: '${DateTime.now().microsecondsSinceEpoch}_${_items.length}',
+      id: _uuid.v4(),
       title: trimmed,
       amount: amount,
       category: category,

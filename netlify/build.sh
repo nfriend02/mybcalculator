@@ -13,8 +13,10 @@ export PATH="$FLUTTER_DIR/bin:$PATH"
 flutter config --enable-web
 flutter --version
 
-# Inject Netlify environment variables into `.env` (flutter_dotenv asset).
-cat > .env <<EOF
+# Inject Netlify environment variables into app config assets.
+# Prefer `assets/config/app_config.env` — Netlify often blocks files named `.env`.
+mkdir -p assets/config
+cat > assets/config/app_config.env <<EOF
 FIREBASE_API_KEY=${FIREBASE_API_KEY:-}
 FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN:-}
 FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-}
@@ -32,6 +34,7 @@ APP_ICON_URL=${APP_ICON_URL:-/icons/Icon-512.png}
 GITHUB_BRANCH_URL=${GITHUB_BRANCH_URL:-}
 NETLIFY_SITE_URL=${URL:-}
 EOF
+cp assets/config/app_config.env .env
 
 flutter pub get
 flutter build web --release

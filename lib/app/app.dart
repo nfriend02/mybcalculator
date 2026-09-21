@@ -32,6 +32,9 @@ class AppBootstrap {
   /// Explicit type args — bare `ChangeNotifierProvider` erases T and breaks
   /// `context.watch<CalculatorController>()` (blank calculator screen).
   List<SingleChildWidget> providers() => [
+        Provider<bool>.value(
+          value: firebaseReady,
+        ),
         ChangeNotifierProvider<CalculatorController>(
           create: (_) =>
               CalculatorController(firestore: firestore)..loadHistory(),

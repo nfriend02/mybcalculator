@@ -1,3 +1,5 @@
+import '../schedule/schedule_item.dart' show parseFirestoreDate;
+
 class ExpenseRecord {
   const ExpenseRecord({
     required this.id,
@@ -29,7 +31,7 @@ class ExpenseRecord {
       amount: (map['amount'] as num?)?.toDouble() ?? 0,
       category: map['category'] as String? ?? 'general',
       status: map['status'] as String? ?? 'active',
-      createdAt: DateTime.now(),
+      createdAt: parseFirestoreDate(map['createdAt']) ?? DateTime.now(),
     );
   }
 }

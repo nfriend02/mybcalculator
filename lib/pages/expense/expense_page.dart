@@ -80,13 +80,16 @@ class _ExpensePageState extends State<ExpensePage> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ExpenseController>();
+    final firebaseReady = context.watch<bool>();
     final selectedCount = _selected
         .where((id) => controller.items.any((e) => e.id == id))
         .length;
 
     return FeatureScaffold(
       title: '지출 기록',
-      subtitle: '합계 ₩${controller.total.toStringAsFixed(0)}',
+      subtitle: firebaseReady
+          ? '합계 ₩${controller.total.toStringAsFixed(0)} · Firebase 동기화'
+          : '합계 ₩${controller.total.toStringAsFixed(0)} · 오프라인',
       emoji: '💸',
       accent: const Color(0xFFD4926A),
       variant: FeatureVariant.stripe,

@@ -50,6 +50,7 @@ app.*.map.json
 # Secrets — keep `.env.example` only
 .env
 .env.local
+assets/config/app_config.env
 *.pem
 google-services.json
 GoogleService-Info.plist

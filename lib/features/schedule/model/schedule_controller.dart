@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../entities/schedule/schedule_item.dart';
 import '../../../shared/services/firestore_service.dart';
@@ -13,6 +14,7 @@ class ScheduleController extends ChangeNotifier {
 
   final FirestoreService? _firestore;
   final GeminiCalcService _gemini;
+  final _uuid = const Uuid();
   final List<ScheduleItem> _items = [];
   bool _busy = false;
   String? _note;
@@ -51,7 +53,7 @@ class ScheduleController extends ChangeNotifier {
     // Invalidate in-flight load so it cannot wipe this optimistic insert.
     _loadToken++;
     final item = ScheduleItem(
-      id: '${DateTime.now().microsecondsSinceEpoch}_${_items.length}',
+      id: _uuid.v4(),
       title: trimmed,
       when: when,
       note: note,

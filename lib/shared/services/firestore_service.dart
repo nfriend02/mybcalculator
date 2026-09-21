@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart';
 
 /// Firestore CRUD service.
 ///
-/// Default indexes (see `firestore.indexes.json`): `createdAt`, `status`.
+/// List queries avoid composite-index requirements by filtering on `status`
+/// and sorting `createdAt` on the client.
 class FirestoreService {
   FirestoreService({FirebaseFirestore? firestore})
       : _db = firestore ?? FirebaseFirestore.instance;
@@ -20,14 +21,14 @@ class FirestoreService {
     String? docId,
     String status = 'active',
   }) async {
-    final payload = {
+    final payload = <String, dynamic>{
       ...data,
       'status': data['status'] ?? status,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (docId != null) {
+    if (docId != null && docId.isNotEmpty) {
       final ref = _db.collection(collectionPath).doc(docId);
       await ref.set(payload);
       return ref;
@@ -74,39 +75,41 @@ class FirestoreService {
     await _db.collection(collectionPath).doc(docId).delete();
   }
 
-  /// List with default indexes: status + createdAt desc, page-sized.
+  /// List active documents. Client-sorts by createdAt (no composite index).
   Future<List<Map<String, dynamic>>> list({
     required String collectionPath,
     String status = 'active',
     int limit = 10,
     DocumentSnapshot? startAfter,
   }) async {
-    Query<Map<String, dynamic>> query = _db
-        .collection(collectionPath)
-        .where('status', isEqualTo: status)
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
-
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
     try {
+      Query<Map<String, dynamic>> query = _db
+          .collection(collectionPath)
+          .where('status', isEqualTo: status)
+          .limit(limit.clamp(1, 100));
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
       final snap = await query.get();
-      return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+      final rows =
+          snap.docs.map((d) => <String, dynamic>{'id': d.id, ...d.data()}).toList();
+      rows.sort((a, b) => _createdAtMs(b['createdAt']).compareTo(_createdAtMs(a['createdAt'])));
+      return rows;
     } catch (e, st) {
-      // Composite index may still be building — fall back to a simple query.
       debugPrint('FirestoreService.list error: $e\n$st');
       try {
-        final snap = await _db
-            .collection(collectionPath)
-            .orderBy('createdAt', descending: true)
-            .limit(limit)
-            .get();
-        return snap.docs
-            .map((d) => {'id': d.id, ...d.data()})
-            .where((d) => d['status'] == status)
-            .toList();
+        final snap = await _db.collection(collectionPath).limit(100).get();
+        final rows = snap.docs
+            .map((d) => <String, dynamic>{'id': d.id, ...d.data()})
+            .where((d) => (d['status'] as String? ?? 'active') == status)
+            .toList()
+          ..sort(
+            (a, b) =>
+                _createdAtMs(b['createdAt']).compareTo(_createdAtMs(a['createdAt'])),
+          );
+        return rows.take(limit).toList();
       } catch (e2, st2) {
         debugPrint('FirestoreService.list fallback error: $e2\n$st2');
         rethrow;
@@ -122,11 +125,31 @@ class FirestoreService {
     return _db
         .collection(collectionPath)
         .where('status', isEqualTo: status)
-        .orderBy('createdAt', descending: true)
-        .limit(limit)
+        .limit(limit.clamp(1, 100))
         .snapshots()
-        .map(
-          (snap) => snap.docs.map((d) => {'id': d.id, ...d.data()}).toList(),
-        );
+        .map((snap) {
+          final rows = snap.docs
+              .map((d) => <String, dynamic>{'id': d.id, ...d.data()})
+              .toList()
+            ..sort(
+              (a, b) => _createdAtMs(b['createdAt'])
+                  .compareTo(_createdAtMs(a['createdAt'])),
+            );
+          return rows;
+        });
+  }
+
+  static int _createdAtMs(dynamic value) {
+    if (value == null) return 0;
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
+    if (value is DateTime) return value.millisecondsSinceEpoch;
+    if (value is String) {
+      return DateTime.tryParse(value)?.millisecondsSinceEpoch ?? 0;
+    }
+    try {
+      return (value as dynamic).millisecondsSinceEpoch as int;
+    } catch (_) {
+      return 0;
+    }
   }
 }

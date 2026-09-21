@@ -70,6 +70,7 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ScheduleController>();
+    final firebaseReady = context.watch<bool>();
     final fmt = DateFormat('yyyy-MM-dd HH:mm');
     final selectedCount = _selected
         .where((id) => controller.items.any((e) => e.id == id))
@@ -77,7 +78,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
     return FeatureScaffold(
       title: '일정 관리',
-      subtitle: '말로 일정을 말하거나, 제목을 직접 추가',
+      subtitle: firebaseReady
+          ? 'Firebase 동기화 · 말로 일정을 말하거나 직접 추가'
+          : '오프라인 데모 · Firebase 미연결',
       emoji: '📅',
       accent: const Color(0xFFA8967A),
       variant: FeatureVariant.soft,
