@@ -13,7 +13,11 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env', isOptional: true);
+  } catch (e, st) {
+    debugPrint('dotenv load skipped: $e\n$st');
+  }
 
   var firebaseReady = false;
   if (DefaultFirebaseOptions.isConfigured) {

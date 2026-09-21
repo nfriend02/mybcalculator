@@ -24,6 +24,7 @@ class CalculatorPage extends StatelessWidget {
 
         if (wide) {
           return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(flex: 3, child: pad),
               const SizedBox(width: 20),

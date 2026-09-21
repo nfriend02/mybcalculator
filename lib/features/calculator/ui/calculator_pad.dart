@@ -8,19 +8,30 @@ import '../model/calculator_controller.dart';
 class CalculatorPad extends StatelessWidget {
   const CalculatorPad({super.key});
 
-  static const _keys = [
-    ['C', '⌫', '(', ')'],
-    ['7', '8', '9', '÷'],
-    ['4', '5', '6', '×'],
-    ['1', '2', '3', '－'],
-    ['0', '.', '＝', '＋'],
+  static const _rows = <List<String>>[
+    ['C', 'back', '(', ')'],
+    ['7', '8', '9', '/'],
+    ['4', '5', '6', '*'],
+    ['1', '2', '3', '-'],
+    ['0', '.', '=', '+'],
   ];
+
+  static String _label(String token) {
+    return switch (token) {
+      'back' => '⌫',
+      '/' => '÷',
+      '*' => '×',
+      '-' => '−',
+      _ => token,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<CalculatorController>();
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           width: double.infinity,
@@ -35,62 +46,84 @@ class CalculatorPad extends StatelessWidget {
             children: [
               Text(
                 controller.expression.isEmpty ? ' ' : controller.expression,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.nunito(
                   fontSize: 14,
                   color: AppTheme.ink.withValues(alpha: 0.45),
                 ),
               ),
-              Text(
-                controller.display,
-                style: GoogleFonts.fredoka(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w600,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  controller.display,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        for (final row in _keys) ...[
-          Expanded(
-            child: Row(
-              children: [
-                for (final key in row)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: _CalcKey(
-                        label: key,
-                        onTap: () => controller.input(key),
-                      ),
-                    ),
+        Expanded(
+          child: Column(
+            children: [
+              for (final row in _rows)
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final token in row)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: _CalcKey(
+                              label: _label(token),
+                              token: token,
+                              onTap: () => controller.input(
+                                token == 'back' ? '⌫' : token,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
-        ],
+        ),
       ],
     );
   }
 }
 
 class _CalcKey extends StatelessWidget {
-  const _CalcKey({required this.label, required this.onTap});
+  const _CalcKey({
+    required this.label,
+    required this.token,
+    required this.onTap,
+  });
+
   final String label;
+  final String token;
   final VoidCallback onTap;
 
   Color get _bg {
-    if (label == '＝') return AppTheme.coral;
-    if ('＋－×÷()'.contains(label)) return AppTheme.lavender;
-    if (label == 'C' || label == '⌫') return AppTheme.peach;
+    if (token == '=') return AppTheme.coral;
+    if ('+-*/()'.contains(token)) return AppTheme.lavender;
+    if (token == 'C' || token == 'back') return AppTheme.peach;
     return AppTheme.mint;
   }
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: _bg.withValues(alpha: 0.85),
+      color: _bg.withValues(alpha: 0.9),
       borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
@@ -100,7 +133,7 @@ class _CalcKey extends StatelessWidget {
             style: GoogleFonts.nunito(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: label == '＝' ? Colors.white : AppTheme.ink,
+              color: token == '=' ? Colors.white : AppTheme.ink,
             ),
           ),
         ),

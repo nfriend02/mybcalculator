@@ -26,19 +26,28 @@ class CalculatorEngine {
 
   void input(String token) {
     _error = null;
-    if (token == '=' || token == '＝') {
+    // Normalize pad glyphs (fullwidth / unicode) to ASCII operators.
+    final normalized = switch (token) {
+      '＝' || '=' => '=',
+      '＋' || '+' => '+',
+      '－' || '−' || '-' => '-',
+      '×' || '*' || 'x' || 'X' => '*',
+      '÷' || '/' => '/',
+      _ => token,
+    };
+    if (normalized == '=') {
       evaluate();
       return;
     }
-    if (token == 'C') {
+    if (normalized == 'C') {
       clear();
       return;
     }
-    if (token == '⌫') {
+    if (normalized == '⌫') {
       backspace();
       return;
     }
-    _expression += token;
+    _expression += normalized;
     _display = _expression;
   }
 
@@ -67,6 +76,7 @@ class CalculatorEngine {
         .replaceAll('×', '*')
         .replaceAll('÷', '/')
         .replaceAll('－', '-')
+        .replaceAll('−', '-')
         .replaceAll('＋', '+')
         .replaceAll(' ', '');
     if (normalized.isEmpty) return 0;

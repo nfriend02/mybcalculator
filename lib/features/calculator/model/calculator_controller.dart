@@ -25,6 +25,7 @@ class CalculatorController extends ChangeNotifier {
   void input(String token) {
     _engine.input(token);
     if (token == '=' || token == '＝') {
+      // Fire-and-forget persistence; never block UI on Firestore.
       _persist(_engine.expression, _engine.display, source: 'manual');
     }
     notifyListeners();
